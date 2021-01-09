@@ -1,7 +1,7 @@
 #ifndef GEMINI_H
 #define GEMINI_H
 
-#include <stdint.h>
+#include <sys/types.h>
 #include "curl/url.h"
 #include "list.h"
 

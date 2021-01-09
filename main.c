@@ -4,11 +4,13 @@
 #include <ctype.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "conn.h"
 #include "curl/url.h"
+#include "history.h"
 #include "gemini.h"
 #include "termbox.h"
 #include "ui.h"
@@ -29,13 +31,44 @@ signal_fatal(int sig)
 int
 main(void)
 {
+	/* --- DEBUG TRASH, ignore ---
+	CURLU *u, *au = curl_url(), *bu = curl_url(), *cu = curl_url(), *du = curl_url();
+	struct Gemdoc *a, *b, *c, *d;
+
+	curl_url_set(au, CURLUPART_URL, "gemini://gemini.circumlunar.space", 0);
+	gemdoc_from_url(&a, au);
+	curl_url_set(bu, CURLUPART_URL, "gemini://tilde.team/", 0);
+	gemdoc_from_url(&b, bu);
+	curl_url_set(cu, CURLUPART_URL, "gemini://cosmic.voyage/", 0);
+	gemdoc_from_url(&c, cu);
+	curl_url_set(du, CURLUPART_URL,"gemini://gemini.ctrl-c.club", 0);
+	gemdoc_from_url(&d, du);
+
+	hist_init();
+	hist_add(a);
+	hist_add(b);
+	hist_add(c);
+	hist_back();
+	hist_back();
+	hist_add(d);
+	hist_add(a);
+	char *urll;
+	for (size_t i = 0; i < hist_len(); ++i) {
+		if (!history[i]) continue;
+		u = history[i]->url;
+		curl_url_get(u, CURLUPART_URL, &urll, 0);
+		printf("[%zu] '%s'\n", i, urll);
+	}
+	printf("done (histlen=%zu, histpos=%zu)\n", hist_len(), histpos);
+	return 0;*/
+
 	/* register signal handlers */
 	signal(SIGPIPE, SIG_IGN);
 
 	struct sigaction fatal;
 	fatal.sa_handler = &signal_fatal;
 	sigaction(SIGILL,   &fatal, NULL);
-	//sigaction(SIGSEGV,  &fatal, NULL);
+	sigaction(SIGSEGV,  &fatal, NULL);
 	sigaction(SIGFPE,   &fatal, NULL);
 	sigaction(SIGBUS,   &fatal, NULL);
 
@@ -44,16 +77,18 @@ main(void)
 	struct tb_event ev;
 	int ret = 0;
 
-	struct Gemdoc *g = NULL;
+	struct Gemdoc *g = NULL, *old = NULL;
+
 	CURLU *url = curl_url();
 	curl_url_set(url, CURLUPART_URL,
 		"gemini://gemini.circumlunar.space", 0);
 
 	gemdoc_from_url(&g, url);
 
+	hist_init();
+	hist_add(g);
 	ui_init();
-	ui_doc = g;
-	ui_display_gemdoc();
+	ui_set_gemdoc(g);
 
 	_Bool quit = false;
 	while ("the web sucks" && !quit) {
@@ -85,13 +120,7 @@ main(void)
 				 * the gemdoc */
 				url = curl_url_dup(url);
 
-				gemdoc_free(g);
 				g = NULL;
-
-				/* DEBUG char *urll;
-				curl_url_get(url, CURLUPART_URL, &urll, 0);
-				ssize_t i = gemdoc_from_url(&g, url);
-				die("url=%s,i=%d", urll, i); DEBUG */
 
 				/* TODO: warn the user instead of dying */
 				switch (gemdoc_from_url(&g, url)) {
@@ -103,9 +132,8 @@ main(void)
 					die("parse error");
 				}
 
-				ui_doc = g;
-				ui_vscroll = ui_hscroll = 0; /* reset scroll */
-				ui_display_gemdoc();
+				hist_add(g);
+				ui_set_gemdoc(g);
 			break; case 'j':
 				++ui_vscroll;
 				ui_display_gemdoc();
@@ -122,11 +150,33 @@ main(void)
 			break; case 'l':
 				++ui_hscroll;
 				ui_display_gemdoc();
+			break; case 'b':
+				if (hist_len() == 0)
+					break;
+
+				old = g;
+				if (!(g = hist_back())) {
+					g = old;
+					break;
+				}
+
+				ui_set_gemdoc(g);
+			break; case 'f':
+				if (hist_len() == 0)
+					break;
+
+				old = g;
+				if (!(g = hist_forw())) {
+					g = old;
+					break;
+				}
+
+				ui_set_gemdoc(g);
 			}
 		}
 	}
 
 	ui_shutdown();
-	gemdoc_free(g);
+	hist_free();
 	return 0;
 }

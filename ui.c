@@ -235,6 +235,15 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 }
 
 void
+ui_set_gemdoc(struct Gemdoc *g)
+{
+	assert(g != NULL);
+	ui_vscroll = ui_hscroll = 0;
+	ui_doc = g;
+	ui_display_gemdoc();
+}
+
+void
 ui_display_gemdoc(void)
 {
 	assert(ui_doc != NULL);

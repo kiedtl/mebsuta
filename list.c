@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <sys/types.h>
 
 #include "list.h"
 #include "util.h"
@@ -66,6 +66,18 @@ lnklist_push(struct lnklist *list, void *data)
 	new->data = data;
 
 	return true;
+}
+
+/* return a reference to the nth element. */
+struct lnklist *
+lnklist_ref(struct lnklist *list, size_t n)
+{
+	struct lnklist *head, *c;
+	if ((head = lnklist_head(list)) == NULL)
+		return NULL;
+	for (c = head->next; c && n != 0; c = c->next)
+		--n;
+	return c;
 }
 
 /*

@@ -228,7 +228,7 @@ gemdoc_find_link(struct Gemdoc *g, size_t n, char **text, CURLU **url)
 _Bool
 gemdoc_free(struct Gemdoc *g)
 {
-	curl_url_cleanup(g->url);
+	if (!g) return false;
 
 	struct lnklist *c;
 
@@ -248,9 +248,10 @@ gemdoc_free(struct Gemdoc *g)
 		free(l);
 	}
 
-	lnklist_free(g->rawdoc);
-	lnklist_free(g->document);
-	free(g);
+	if (g->rawdoc)   lnklist_free(g->rawdoc);
+	if (g->document) lnklist_free(g->document);
+	if (g->url)      curl_url_cleanup(g->url);
 
+	free(g);
 	return true;
 }

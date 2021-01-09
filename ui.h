@@ -9,6 +9,7 @@ extern size_t ui_vscroll, ui_hscroll;
 extern struct Gemdoc *ui_doc;
 
 void ui_init(void);
+void ui_set_gemdoc(struct Gemdoc *g);
 void ui_present(void);
 void ui_display_gemdoc(void);
 void ui_shutdown(void);
