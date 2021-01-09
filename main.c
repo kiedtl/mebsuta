@@ -69,39 +69,40 @@ main(void)
 				quit = true;
 			}
 		} else if (ev.type == TB_EVENT_KEY && ev.ch) {
-			if (isdigit(ev.ch)) {
+			switch(ev.ch) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':;
 				char *text = NULL;
 				CURLU *url = NULL;
 
-				if (gemdoc_find_link(g, ev.ch - '0', &text, &url)) {
-					/* take a copy, since we'll be free'ing
-					 * the gemdoc */
-					url = curl_url_dup(url);
+				if (!gemdoc_find_link(g, ev.ch - '0', &text, &url))
+					break;
 
-					gemdoc_free(g);
-					g = NULL;
+				/* take a copy, since we'll be free'ing
+				 * the gemdoc */
+				url = curl_url_dup(url);
 
-					/* DEBUG char *urll;
-					curl_url_get(url, CURLUPART_URL, &urll, 0);
-					ssize_t i = gemdoc_from_url(&g, url);
-					die("url=%s,i=%d", urll, i); DEBUG */
+				gemdoc_free(g);
+				g = NULL;
 
-					/* TODO: warn the user instead of dying */
-					switch (gemdoc_from_url(&g, url)) {
-					break; case -1:
-						die("unknown scheme");
-					break; case -2: case -3: case -4:
-						die("error(tls): %s", tls_error(client));
-					break; case -5:
-						die("parse error");
-					}
+				/* DEBUG char *urll;
+				curl_url_get(url, CURLUPART_URL, &urll, 0);
+				ssize_t i = gemdoc_from_url(&g, url);
+				die("url=%s,i=%d", urll, i); DEBUG */
 
-					ui_doc = g;
-					ui_display_gemdoc();
+				/* TODO: warn the user instead of dying */
+				switch (gemdoc_from_url(&g, url)) {
+				break; case -1:
+					die("unknown scheme");
+				break; case -2: case -3: case -4:
+					die("error(tls): %s", tls_error(client));
+				break; case -5:
+					die("parse error");
 				}
-			}
 
-			switch(ev.ch) {
+				ui_doc = g;
+				ui_vscroll = ui_hscroll = 0; /* reset scroll */
+				ui_display_gemdoc();
 			break; case 'j':
 				++ui_vscroll;
 				ui_display_gemdoc();
