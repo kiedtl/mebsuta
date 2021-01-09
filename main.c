@@ -134,6 +134,12 @@ main(void)
 
 				hist_add(g);
 				ui_set_gemdoc(g);
+			break; case 'g':
+				ui_vscroll = 0;
+				ui_display_gemdoc();
+			break; case 'G':
+				ui_vscroll = ui_display_gemdoc() - 10;
+				ui_display_gemdoc();
 			break; case 'j':
 				++ui_vscroll;
 				ui_display_gemdoc();

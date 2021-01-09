@@ -243,7 +243,7 @@ ui_set_gemdoc(struct Gemdoc *g)
 	ui_display_gemdoc();
 }
 
-void
+size_t
 ui_display_gemdoc(void)
 {
 	assert(ui_doc != NULL);
@@ -253,7 +253,7 @@ ui_display_gemdoc(void)
 	size_t height = (size_t) tb_height();
 	size_t width = (size_t) tb_width();
 
-	size_t links = 0;
+	size_t links = 0, page_height = 0;
 	ssize_t scrollctr = ui_vscroll;
 	struct lnklist *c;
 	for (c = ui_doc->document->next; c; c = c->next) {
@@ -265,22 +265,22 @@ ui_display_gemdoc(void)
 		}
 
 		size_t i = 1;
-		struct lnklist *t, *folded = strfold(text, width);
-		for (t = folded->next; t; t = t->next, ++i) {
+		struct lnklist *folded = strfold(text, width);
+		for (struct lnklist *t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
 			tb_writeline(line, fmt, ui_hscroll);
 			free(t->data);
 			if (++line >= height-2) break;
 		}
+		page_height += lnklist_len(folded);
 		lnklist_free(folded);
 	}
 
 	char *url, lstatus[128], rstatus[128], *pad;
 	curl_url_get(ui_doc->url, CURLUPART_URL, &url, 0);
 
-	strcpy(lstatus, format("%3d%%",
-		(ui_vscroll*100)/(ui_vscroll-scrollctr)));
+	strcpy(lstatus, format("%3d%%", (ui_vscroll * 100) / (page_height)));
 	strcpy(rstatus, format("%s", url));
 	pad = strrep(' ', width - strlen(lstatus) - strlen(rstatus) - 3);
 
@@ -288,6 +288,7 @@ ui_display_gemdoc(void)
 				lstatus, pad, rstatus), 0);
 
 	free(url);
+	return page_height;
 }
 
 void
