@@ -67,6 +67,9 @@ main(void)
 			switch (ev.key) {
 			break; case TB_KEY_CTRL_C:
 				quit = true;
+			break; case TB_KEY_SPACE:
+				ui_vscroll += tb_height();
+				ui_display_gemdoc();
 			}
 		} else if (ev.type == TB_EVENT_KEY && ev.ch) {
 			switch(ev.ch) {
