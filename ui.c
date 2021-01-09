@@ -27,7 +27,7 @@ size_t tb_status = 0;
 const size_t TB_ACTIVE   = 0x01000000;
 const size_t TB_MODIFIED = 0x02000000;
 
-size_t ui_scroll = 0;
+size_t ui_hscroll = 0, ui_vscroll = 0;
 struct Gemdoc *ui_doc = NULL;
 
 /*
@@ -60,7 +60,7 @@ tb_clearline(size_t line, struct tb_cell *c)
 }
 
 static void
-tb_writeline(size_t line, char *string)
+tb_writeline(size_t line, char *string, size_t skip)
 {
 	int width = tb_width(), col = 0;
 	struct tb_cell c = { ' ', 0, 0 };
@@ -133,7 +133,12 @@ tb_writeline(size_t line, char *string)
 			string += runelen;
 	
 			chwidth = utf8proc_charwidth((utf8proc_int32_t) c.ch);
-	
+
+			if (skip > 0) {
+				--skip;
+				continue;
+			}
+
 			if (chwidth > 0) {
 				tb_put_cell(col, line, &c);
 				col += 1;
@@ -240,7 +245,7 @@ ui_display_gemdoc(void)
 	size_t width = (size_t) tb_width();
 
 	size_t links = 0;
-	ssize_t scrollctr = ui_scroll;
+	ssize_t scrollctr = ui_vscroll;
 	struct lnklist *c;
 	for (c = ui_doc->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
@@ -254,17 +259,26 @@ ui_display_gemdoc(void)
 		struct lnklist *t, *folded = strfold(text, width);
 		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
-			tb_writeline(line,
-				format_elem(l, (char *) t->data, links, i));
+			char *fmt = format_elem(l, (char *) t->data, links, i);
+			tb_writeline(line, fmt, ui_hscroll);
 			free(t->data);
 			if (++line >= height-2) break;
 		}
 		lnklist_free(folded);
 	}
 
-	char *url, *padding = strrep(' ', width);
+	char *url, lstatus[128], rstatus[128], *pad;
 	curl_url_get(ui_doc->url, CURLUPART_URL, &url, 0);
-	tb_writeline(height-1, format("\x16 %s%s\x0f", url, padding));
+
+	strcpy(lstatus, format("%3d%%",
+		(ui_vscroll*100)/(ui_vscroll-scrollctr)));
+	strcpy(rstatus, format("%s", url));
+	pad = strrep(' ', width - strlen(lstatus) - strlen(rstatus) - 3);
+
+	tb_writeline(height-1, format("\x16 %s%s%s ",
+				lstatus, pad, rstatus), 0);
+
+	free(url);
 }
 
 void

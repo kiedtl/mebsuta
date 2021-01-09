@@ -103,13 +103,21 @@ main(void)
 
 			switch(ev.ch) {
 			break; case 'j':
-				++ui_scroll;
+				++ui_vscroll;
 				ui_display_gemdoc();
 			break; case 'k':
-				if (ui_scroll > 0) {
-					--ui_scroll;
+				if (ui_vscroll > 0) {
+					--ui_vscroll;
 					ui_display_gemdoc();
 				}
+			break; case 'h':
+				if (ui_hscroll > 0) {
+					--ui_hscroll;
+					ui_display_gemdoc();
+				}
+			break; case 'l':
+				++ui_hscroll;
+				ui_display_gemdoc();
 			}
 		}
 	}
