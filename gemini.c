@@ -123,6 +123,11 @@ gemdoc_parse(struct Gemdoc *g, char *line)
 	 * just in case */
 	char *begin = line;
 
+	/* remove trailing \r, if any */
+	char *cr;
+	if ((cr = strchr(line, '\r')))
+		*cr = '\0';
+
 	++g->__line;
 	lnklist_push(g->rawdoc, strdup(line));
 
