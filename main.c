@@ -6,12 +6,6 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "conn.h"
 #include "curl/url.h"
@@ -19,23 +13,6 @@
 #include "termbox.h"
 #include "ui.h"
 #include "util.h"
-
-/* maximum rate at which the screen is refreshed */
-const struct timeval REFRESH = { 0, 1024 };
-
-#define TIMEOUT 4096
-
-/*
- * keep track of termbox's state, so
- * that we know if tb_shutdown() is safe to call,
- * and whether we can redraw the screen.
- *
- * calling tb_shutdown twice, or before tb_init,
- * results in a call to abort().
- */
-size_t tb_status = 0;
-const size_t TB_ACTIVE   = 0x01000000;
-const size_t TB_MODIFIED = 0x02000000;
 
 static const char *sigstrs[] = { [SIGILL]  = "SIGILL", [SIGSEGV] = "SIGSEGV",
 	[SIGFPE]  = "SIGFPE", [SIGBUS]  = "SIGBUS", };
@@ -46,24 +23,6 @@ signal_fatal(int sig)
 	ui_shutdown();
 	die("received signal %s (%d); aborting.",
 		sigstrs[sig] ? sigstrs[sig] : "???", sig);
-}
-
-/*
- * check if (a) REFRESH time has passed, and (b) if the termbox
- * buffer has been modified; if both those conditions are met, "present"
- * the termbox screen.
- */
-static inline void
-tb_try_present(struct timeval *tcur, struct timeval *tpre)
-{
-	assert(gettimeofday(tcur, NULL) == 0);
-	struct timeval diff;
-	timersub(tcur, tpre, &diff);
-
-	if (!timercmp(&diff, &REFRESH, >=))
-		return;
-	if ((tb_status & TB_MODIFIED) == TB_MODIFIED)
-		tb_present();
 }
 
 int
@@ -78,15 +37,6 @@ main(void)
 	//sigaction(SIGSEGV,  &fatal, NULL);
 	sigaction(SIGFPE,   &fatal, NULL);
 	sigaction(SIGBUS,   &fatal, NULL);
-
-	/*
-	 * tpresent: last time tb_present() was called.
-	 * tcurrent: buffer for gettimeofday(2).
-	 */
-	struct timeval tpresent = { 0, 0 };
-	struct timeval tcurrent = { 0, 0 };
-
-	assert(gettimeofday(&tpresent, NULL) == 0);
 
 	/* incoming user events (key presses, window resizes,
 	 * mouse clicks, etc */
@@ -106,7 +56,7 @@ main(void)
 
 	_Bool quit = false;
 	while ("the web sucks" && !quit) {
-		tb_try_present(&tcurrent, &tpresent);
+		ui_present();
 
 		if ((ret = tb_peek_event(&ev, 16)) == 0)
 			continue;
@@ -147,7 +97,6 @@ main(void)
 
 					ui_doc = g;
 					ui_display_gemdoc();
-					tb_present();
 				}
 			}
 

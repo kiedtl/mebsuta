@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/time.h>
+#include <time.h>
 #include <utf8proc.h>
 
 #include "gemini.h"
@@ -10,10 +12,30 @@
 #include "ui.h"
 #include "util.h"
 
-extern size_t tb_status, TB_ACTIVE, TB_MODIFIED;
+/* maximum rate at which the screen is refreshed */
+static const struct timeval REFRESH = { 0, 1024 };
+
+/*
+ * keep track of termbox's state, so
+ * that we know if tb_shutdown() is safe to call,
+ * and whether we can redraw the screen.
+ *
+ * calling tb_shutdown twice, or before tb_init,
+ * results in a call to abort().
+ */
+size_t tb_status = 0;
+const size_t TB_ACTIVE   = 0x01000000;
+const size_t TB_MODIFIED = 0x02000000;
 
 size_t ui_scroll = 0;
 struct Gemdoc *ui_doc = NULL;
+
+/*
+ * tpresent: last time tb_present() was called.
+ * tcurrent: buffer for gettimeofday(2).
+ */
+struct timeval tpresent = { 0, 0 };
+struct timeval tcurrent = { 0, 0 };
 
 const size_t attribs[] = { TB_BOLD, TB_UNDERLINE, TB_REVERSE };
 static inline void
@@ -125,6 +147,7 @@ tb_writeline(size_t line, char *string)
 void
 ui_init(void)
 {
+	assert(gettimeofday(&tpresent, NULL) == 0);
 	char *errstrs[] = {
 		NULL,
 		"termbox: unsupported terminal",
@@ -137,6 +160,25 @@ ui_init(void)
 	tb_select_input_mode(TB_INPUT_ALT|TB_INPUT_MOUSE);
 	tb_select_output_mode(TB_OUTPUT_256);
 }
+
+/*
+ * check if (a) REFRESH time has passed, and (b) if the termbox
+ * buffer has been modified; if both those conditions are met, "present"
+ * the termbox screen.
+ */
+void
+ui_present(void)
+{
+	assert(gettimeofday(&tcurrent, NULL) == 0);
+	struct timeval diff;
+	timersub(&tcurrent, &tpresent, &diff);
+
+	if (!timercmp(&diff, &REFRESH, >=))
+		return;
+	if ((tb_status & TB_MODIFIED) == TB_MODIFIED)
+		tb_present();
+}
+
 
 static char *
 format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
