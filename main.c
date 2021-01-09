@@ -14,13 +14,14 @@
 #include "ui.h"
 #include "util.h"
 
-static const char *sigstrs[] = { [SIGILL]  = "SIGILL", [SIGSEGV] = "SIGSEGV",
-	[SIGFPE]  = "SIGFPE", [SIGBUS]  = "SIGBUS", };
-
 static void
 signal_fatal(int sig)
 {
-	ui_shutdown();
+	static const char *sigstrs[] = {
+		[SIGILL]  = "SIGILL", [SIGSEGV] = "SIGSEGV",
+		[SIGFPE]  = "SIGFPE", [SIGBUS]  = "SIGBUS"
+	};
+
 	die("received signal %s (%d); aborting.",
 		sigstrs[sig] ? sigstrs[sig] : "???", sig);
 }
