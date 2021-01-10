@@ -286,7 +286,7 @@ _ui_redraw_rendered_doc(void)
 		}
 
 		size_t i = 1;
-		struct lnklist *t, *folded = strfold(text, width);
+		struct lnklist *t, *folded = strfold(text, width - 5);
 		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
@@ -328,6 +328,9 @@ ui_redraw(void)
 	size_t page_height = 0;
 	if (ui_raw_doc) page_height = _ui_redraw_raw_doc();
 	else page_height = _ui_redraw_rendered_doc();
+
+	/* add 1 to page_height to prevent div-by-0 errors below */
+	page_height = page_height + 1;
 
 	/* statusline */
 	char *url, lstatus[128], rstatus[128], *pad;
