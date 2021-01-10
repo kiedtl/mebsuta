@@ -1,9 +1,3 @@
-// mIRC color sequences
-//
-// almost all IRC clients will support bold and reset,
-// most clients will support italic and underline, but very
-// few support blink. I'm not sure about support for invert.
-
 #ifndef MIRC_H
 #define MIRC_H
 
@@ -37,6 +31,6 @@
 #define MIRC_LIGHTCYAN     11
 #define MIRC_WHITE          0
 
-const uint8_t mirc_colors[16];
+extern const uint8_t mirc_colors[16];
 
 #endif

@@ -15,6 +15,10 @@
 /* maximum rate at which the screen is refreshed */
 static const struct timeval REFRESH = { 0, 1024 };
 
+static const char *DISMISS = "-- Press <Enter> to dismiss --";
+char ui_message[255];
+enum UiMessageType ui_message_type;
+
 /*
  * keep track of termbox's state, so
  * that we know if tb_shutdown() is safe to call,
@@ -164,6 +168,8 @@ ui_init(void)
 	tb_status |= TB_ACTIVE;
 	tb_select_input_mode(TB_INPUT_ALT|TB_INPUT_MOUSE);
 	tb_select_output_mode(TB_OUTPUT_256);
+
+	memset(ui_message, 0x0, sizeof(ui_message));
 }
 
 /*
@@ -240,11 +246,11 @@ ui_set_gemdoc(struct Gemdoc *g)
 	assert(g != NULL);
 	ui_vscroll = ui_hscroll = 0;
 	ui_doc = g;
-	ui_display_gemdoc();
+	ui_redraw();
 }
 
 size_t
-ui_display_gemdoc(void)
+ui_redraw(void)
 {
 	assert(ui_doc != NULL);
 	tb_clear();
@@ -255,8 +261,7 @@ ui_display_gemdoc(void)
 
 	size_t links = 0, page_height = 0;
 	ssize_t scrollctr = ui_vscroll;
-	struct lnklist *c;
-	for (c = ui_doc->document->next; c; c = c->next) {
+	for (struct lnklist *c = ui_doc->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 		char *text = l->text;
 		if (l->type == GEM_DATA_LINK) {
@@ -265,30 +270,54 @@ ui_display_gemdoc(void)
 		}
 
 		size_t i = 1;
-		struct lnklist *folded = strfold(text, width);
-		for (struct lnklist *t = folded->next; t; t = t->next, ++i) {
+		struct lnklist *t, *folded = strfold(text, width);
+		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
 			tb_writeline(line, fmt, ui_hscroll);
 			free(t->data);
-			if (++line >= height-2) break;
+			if (++line >= height-3) break;
 		}
 		page_height += lnklist_len(folded);
 		lnklist_free(folded);
 	}
 
+	/* XXX: add 1 to page_height to prevent sigfpe below */
+	++page_height;
+
+	/* statusline */
 	char *url, lstatus[128], rstatus[128], *pad;
 	curl_url_get(ui_doc->url, CURLUPART_URL, &url, 0);
 
 	strcpy(lstatus, format("%3d%%", (ui_vscroll * 100) / (page_height)));
 	strcpy(rstatus, format("%s", url));
-	pad = strrep(' ', width - strlen(lstatus) - strlen(rstatus) - 3);
+	pad = strrep(' ', width - strlen(lstatus) - strlen(rstatus) - 2);
 
-	tb_writeline(height-1, format("\x16 %s%s%s ",
+	tb_writeline(height-2, format("\x16 %s%s%s ",
 				lstatus, pad, rstatus), 0);
+
+	/* inputline */
+	tb_clearline(height-1, &((struct tb_cell){0, 0, 0}));
+	if (strlen(ui_message) > 0) {
+		size_t padwidth = width - strlen(ui_message) - strlen(DISMISS);
+		tb_writeline(height-1, format("%s%s\00314%s",
+			ui_message, strrep(' ', padwidth-1), DISMISS), 0);
+	}
 
 	free(url);
 	return page_height;
+}
+
+void
+ui_handle(struct tb_event *ev)
+{
+	if (ev->type == TB_EVENT_KEY && ev->key) {
+		switch (ev->key) {
+		break; case TB_KEY_ENTER:
+			if (strlen(ui_message) == 0) break;
+			memset(ui_message, 0x0, sizeof(ui_message));
+		}
+	}
 }
 
 void

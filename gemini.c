@@ -77,11 +77,11 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 	conn_init();
 
 	CURLUcode c_rc;
+	char *scheme, *host, *clurl;
 
 	/* wait, did you say gopher? */
-	char *scheme, *host, *clurl;
 	c_rc = curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
-	if (c_rc || strcmp(scheme, "gemini")) return c_rc;
+	if (c_rc || strcmp(scheme, "gemini")) return -1;
 	free(scheme);
 
 	c_rc = curl_url_get(url, CURLUPART_HOST, &host, 0);

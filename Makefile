@@ -3,6 +3,7 @@ CMD      = @
 VERSION  = 0.1.0
 NAME     = mebs
 SRC      = main.c util.c conn.c list.c gemini.c history.c ui.c \
+	   mirc.c \
 	   strlcpy.c curl/url.c curl/escape.c
 OBJ      = $(SRC:.c=.o)
 

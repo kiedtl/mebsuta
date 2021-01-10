@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "conn.h"
 #include "curl/url.h"
@@ -72,11 +74,6 @@ main(void)
 	sigaction(SIGFPE,   &fatal, NULL);
 	sigaction(SIGBUS,   &fatal, NULL);
 
-	/* incoming user events (key presses, window resizes,
-	 * mouse clicks, etc */
-	struct tb_event ev;
-	int ret = 0;
-
 	struct Gemdoc *g = NULL, *old = NULL;
 
 	CURLU *url = curl_url();
@@ -89,6 +86,11 @@ main(void)
 	hist_add(g);
 	ui_init();
 	ui_set_gemdoc(g);
+
+	/* incoming user events (key presses, window resizes,
+	 * mouse clicks, etc */
+	struct tb_event ev;
+	int ret = 0;
 
 	_Bool quit = false;
 	while ("the web sucks" && !quit) {
@@ -106,7 +108,10 @@ main(void)
 				ui_set_gemdoc(g);
 			break; case TB_KEY_SPACE:
 				ui_vscroll += tb_height();
-				ui_display_gemdoc();
+				ui_redraw();
+			break; default:
+				ui_handle(&ev);
+				ui_redraw();
 			}
 		} else if (ev.type == TB_EVENT_KEY && ev.ch) {
 			switch(ev.ch) {
@@ -126,38 +131,44 @@ main(void)
 
 				/* TODO: warn the user instead of dying */
 				switch (gemdoc_from_url(&g, url)) {
-				break; case -1:
-					die("unknown scheme");
+				break; case -1:;
+					char *scheme;
+					curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
+					strcpy(ui_message,
+						format("Unsupported scheme '%s'", scheme));
+					free(scheme);
 				break; case -2: case -3: case -4:
-					die("error(tls): %s", tls_error(client));
+					strcpy(ui_message, format("TLS error: %s", tls_error(client)));
 				break; case -5:
-					die("parse error");
+					strcpy(ui_message, format("Could not parse gemtext document"));
+				break; default:
+					hist_add(g);
 				}
 
-				hist_add(g);
 				ui_set_gemdoc(g);
+				ui_redraw();
 			break; case 'g':
 				ui_vscroll = 0;
-				ui_display_gemdoc();
+				ui_redraw();
 			break; case 'G':
-				ui_vscroll = ui_display_gemdoc() - 10;
-				ui_display_gemdoc();
+				ui_vscroll = ui_redraw() - 10;
+				ui_redraw();
 			break; case 'j':
 				++ui_vscroll;
-				ui_display_gemdoc();
+				ui_redraw();
 			break; case 'k':
 				if (ui_vscroll > 0) {
 					--ui_vscroll;
-					ui_display_gemdoc();
+					ui_redraw();
 				}
 			break; case 'h':
 				if (ui_hscroll > 0) {
 					--ui_hscroll;
-					ui_display_gemdoc();
+					ui_redraw();
 				}
 			break; case 'l':
 				++ui_hscroll;
-				ui_display_gemdoc();
+				ui_redraw();
 			break; case 'b':
 				if (hist_len() == 0)
 					break;
