@@ -5,7 +5,9 @@
 #include <time.h>
 #include <utf8proc.h>
 
+#include "curl/url.h"
 #include "gemini.h"
+#include "history.h"
 #include "list.h"
 #include "mirc.h"
 #include "termbox.h"
@@ -40,6 +42,18 @@ struct Gemdoc *ui_doc = NULL;
  */
 struct timeval tpresent = { 0, 0 };
 struct timeval tcurrent = { 0, 0 };
+
+static size_t
+link_color(CURLU *u)
+{
+	char *scheme;
+	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
+	if (!scheme || strcmp(scheme, "gemini"))
+		return MIRC_RED;
+	if (hist_contains(u) > 0)
+		return MIRC_MAGENTA;
+	return MIRC_BLUE;
+}
 
 const size_t attribs[] = { TB_BOLD, TB_UNDERLINE, TB_REVERSE };
 static inline void
@@ -209,7 +223,8 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		break; case GEM_DATA_LINK:;
 			char attr = l->text ? '\x0f' : '\x1f';
 			char *padding = strrep(' ', strlen(format("[%zu]", lnk)));
-			return format("%s \x1f%c%s", padding, attr, text);
+			return format("%s %c\003%zu%s", padding, attr,
+					link_color(l->link_url), text);
 		case GEM_DATA_TEXT:
 		case GEM_DATA_PREFORMAT:
 		default:
@@ -230,7 +245,8 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		return format(" > \00314%s", text);
 	break; case GEM_DATA_LINK:;
 		char attr = l->text ? '\x0f' : '\x1f';
-		return format("\x02[%zu]\x0f %c%s", lnk, attr, text);
+		return format("\x02[%zu]\x0f %c\003%zu%s", lnk, attr,
+				link_color(l->link_url), text);
 	break;
 
 	case GEM_DATA_TEXT:
