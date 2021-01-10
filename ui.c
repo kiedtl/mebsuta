@@ -35,6 +35,7 @@ const size_t TB_MODIFIED = 0x02000000;
 
 size_t ui_hscroll = 0, ui_vscroll = 0;
 struct Gemdoc *ui_doc = NULL;
+_Bool ui_raw_doc = false;
 
 /*
  * tpresent: last time tb_present() was called.
@@ -265,11 +266,10 @@ ui_set_gemdoc(struct Gemdoc *g)
 	ui_redraw();
 }
 
-size_t
-ui_redraw(void)
+static size_t
+_ui_redraw_rendered_doc(void)
 {
 	assert(ui_doc != NULL);
-	tb_clear();
 
 	size_t line = 0;
 	size_t height = (size_t) tb_height();
@@ -298,8 +298,36 @@ ui_redraw(void)
 		lnklist_free(folded);
 	}
 
-	/* XXX: add 1 to page_height to prevent sigfpe below */
-	++page_height;
+	return page_height;
+}
+
+static size_t
+_ui_redraw_raw_doc(void)
+{
+	size_t height = (size_t) tb_height();
+	size_t line = 0, page_height = 0;
+	ssize_t scrollctr = ui_vscroll;
+	for (struct lnklist *c = ui_doc->rawdoc->next; c; c = c->next) {
+		if (--scrollctr >= 0) continue;
+		tb_writeline(line, (char *)c->data, ui_hscroll);
+		++page_height;
+		if (++line >= height-3) break;
+	}
+	return page_height;
+}
+
+size_t
+ui_redraw(void)
+{
+	assert(ui_doc != NULL);
+	tb_clear();
+
+	size_t height = (size_t) tb_height();
+	size_t width = (size_t) tb_width();
+
+	size_t page_height = 0;
+	if (ui_raw_doc) page_height = _ui_redraw_raw_doc();
+	else page_height = _ui_redraw_rendered_doc();
 
 	/* statusline */
 	char *url, lstatus[128], rstatus[128], *pad;
@@ -332,6 +360,8 @@ ui_handle(struct tb_event *ev)
 		break; case TB_KEY_ENTER:
 			if (strlen(ui_message) == 0) break;
 			memset(ui_message, 0x0, sizeof(ui_message));
+		break; case TB_KEY_CTRL_U:
+			ui_raw_doc = !ui_raw_doc;
 		}
 	}
 }

@@ -18,6 +18,8 @@ extern const size_t TB_ACTIVE, TB_MODIFIED;
 extern size_t ui_vscroll, ui_hscroll;
 extern struct Gemdoc *ui_doc;
 
+extern _Bool ui_raw_doc;
+
 void ui_init(void);
 void ui_present(void);
 void ui_set_gemdoc(struct Gemdoc *g);
