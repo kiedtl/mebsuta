@@ -102,6 +102,8 @@ main(void)
 			switch (ev.key) {
 			break; case TB_KEY_CTRL_C:
 				quit = true;
+			break; case TB_KEY_CTRL_L:
+				ui_set_gemdoc(g);
 			break; case TB_KEY_SPACE:
 				ui_vscroll += tb_height();
 				ui_display_gemdoc();
