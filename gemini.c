@@ -77,7 +77,7 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 	conn_init();
 
 	CURLUcode c_rc;
-	char *scheme, *host, *clurl;
+	char *scheme, *host, *port, *clurl;
 
 	/* wait, did you say gopher? */
 	c_rc = curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
@@ -85,9 +85,10 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 	free(scheme);
 
 	c_rc = curl_url_get(url, CURLUPART_HOST, &host, 0);
+	c_rc = curl_url_get(url, CURLUPART_PORT, &port, 0);
 	c_rc = curl_url_get(url, CURLUPART_URL, &clurl, 0);
 
-	if (!conn_conn(host, "1965")) return -2;
+	if (!conn_conn(host, port ? port : "1965")) return -2;
 	free(host);
 
 	if (!conn_send(clurl) || !conn_send("\r\n")) return -3;
