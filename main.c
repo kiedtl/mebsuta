@@ -210,6 +210,8 @@ main(void)
 				}
 
 				ui_set_gemdoc(g);
+			break; case 'r':
+				follow_link(g->url);
 			break; case ':':
 				tbrl_handle(&ev);
 				ui_redraw();
