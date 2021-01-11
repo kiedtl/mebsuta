@@ -58,6 +58,7 @@ tbrl_handle(struct tb_event *ev)
 			/* allocate 6 times at much memory, since a codepoint
 			 * can take up to size bytes */
 			unsigned char chbuf[TBRL_BUFSIZE*6], *p = chbuf;
+			memset(chbuf, 0x0, sizeof(chbuf));
 			for (size_t codepnt = 0; codepnt < tbrl_len(); ++codepnt) {
 				p += utf8proc_encode_char(tbrl_buf[codepnt], p);
 			}
@@ -82,4 +83,17 @@ tbrl_handle(struct tb_event *ev)
 	}
 
 	if (tbrl_buf[0] != ':') tbrl_reset();
+}
+
+void
+tbrl_setbuf(char *s)
+{
+	utf8proc_int32_t buf = -1;
+
+	for (size_t codepoint = 0; *s; ++codepoint) {
+		s += utf8proc_iterate((unsigned char *)s, strlen(s), &buf);
+		if (buf != -1) tbrl_buf[codepoint] = (uint32_t)buf;
+	}
+
+	tbrl_cursor = tbrl_len();
 }

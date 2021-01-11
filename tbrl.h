@@ -13,3 +13,4 @@ extern uint32_t tbrl_buf[TBRL_BUFSIZE];
 void tbrl_init(void);
 size_t tbrl_len(void);
 void tbrl_handle(struct tb_event *ev);
+void tbrl_setbuf(char *s);

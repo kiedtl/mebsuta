@@ -213,6 +213,9 @@ main(void)
 			break; case ':':
 				tbrl_handle(&ev);
 				ui_redraw();
+			break; case ';':
+				tbrl_setbuf(":go ");
+				ui_redraw();
 			}
 		}
 	}

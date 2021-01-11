@@ -284,6 +284,10 @@ _ui_redraw_rendered_doc(void)
 		if (l->type == GEM_DATA_LINK) {
 			++links;
 			text = l->text ? l->text : l->raw_link_url;
+		} else if (l->type == GEM_DATA_PREFORMAT) {
+			++page_height;
+			tb_writeline(line, (char *)c->data, ui_hscroll);
+			continue;
 		}
 
 		size_t i = 1;

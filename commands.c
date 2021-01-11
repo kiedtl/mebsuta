@@ -3,16 +3,27 @@ command_follow(size_t argc, char **argv)
 {
 	UNUSED(argc);
 
-	size_t link = strtol(argv[1], NULL, 0);
+	char *end = NULL;
+	size_t link = strtol(argv[1], &end, 0);
+	CURLU *c_url = NULL;
 
-	char *text = NULL;
-	CURLU *url = NULL;
-
-	if (!gemdoc_find_link(g, link, &text, &url)) {
-		strcpy(ui_message, format("No such link '%zu'", link));
+	if (end == argv[1]) {
+		c_url = curl_url();
+		CURLUcode rc = curl_url_set(c_url, CURLUPART_URL, argv[1], 0);
+		if (rc) {
+			strcpy(ui_message, format("Invalid link '%s'", argv[1]));
+			return;
+		}
 	} else {
-		follow_link(url);
+		char *text = NULL;
+
+		if (!gemdoc_find_link(g, link, &text, &c_url)) {
+			strcpy(ui_message, format("No such link '%zu'", link));
+			return;
+		}
 	}
+
+	follow_link(c_url);
 }
 
 static void
@@ -37,8 +48,8 @@ struct Command {
 	size_t args;
 	char *usage;
 } commands[] = {
-	{ "follow", &command_follow, 1, "<link>" },
-	{ "wq",     &command_vimmer, 0,       "" },
+	{ "go", &command_follow, 1, "<link/url>" },
+	{ "wq", &command_vimmer, 0,           "" },
 };
 
 static void
