@@ -50,8 +50,10 @@ follow_link(CURLU *url)
 		strcpy(ui_message,
 			format("Unsupported scheme '%s'", scheme));
 		free(scheme);
-	break; case -2: case -3: case -4:
-		strcpy(ui_message, format("TLS error: %s", tls_error(client)));
+	break; case -2: case -3: case -4:;
+		const char *tls_err = tls_error(client);
+		strcpy(ui_message, format("error: %s",
+			tls_err ? tls_err : strerror(errno)));
 	break; case -5:
 		strcpy(ui_message, format("Could not parse gemtext document"));
 	break; default:
