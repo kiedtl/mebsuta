@@ -227,9 +227,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 			char *padding = strrep(' ', strlen(format("[%zu]", lnk)));
 			return format("%s %c\003%zu%s", padding, attr,
 					link_color(l->link_url), text);
-		case GEM_DATA_TEXT:
-		case GEM_DATA_PREFORMAT:
-		default:
+		break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
 			return text;
 		}
 	}
@@ -249,11 +247,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		char attr = l->text ? '\x0f' : '\x1f';
 		return format("\x02[%zu]\x0f %c\003%zu%s", lnk, attr,
 				link_color(l->link_url), text);
-	break;
-
-	case GEM_DATA_TEXT:
-	case GEM_DATA_PREFORMAT:
-	default:
+	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
 		return text;
 	}
 }
@@ -284,14 +278,12 @@ _ui_redraw_rendered_doc(void)
 		if (l->type == GEM_DATA_LINK) {
 			++links;
 			text = l->text ? l->text : l->raw_link_url;
-		} else if (l->type == GEM_DATA_PREFORMAT) {
-			++page_height;
-			tb_writeline(line, (char *)c->data, ui_hscroll);
-			continue;
 		}
 
+		size_t fold_width = l->type == GEM_DATA_PREFORMAT ?
+			strlen(text) : width - 5;
 		size_t i = 1;
-		struct lnklist *t, *folded = strfold(text, width - 5);
+		struct lnklist *t, *folded = strfold(text, fold_width);
 		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);

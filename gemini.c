@@ -202,7 +202,8 @@ gemdoc_parse(struct Gemdoc *g, char *line)
 
 		lnklist_push(g->document, (void *) gdl);
 	} else {
-		while (*line && isblank(*line)) ++line;
+		if (type != GEM_DATA_PREFORMAT)
+			while (*line && isblank(*line)) ++line;
 		gdl->type = type;
 		gdl->text = strdup(line);
 		lnklist_push(g->document, (void *) gdl);

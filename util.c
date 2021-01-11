@@ -82,6 +82,11 @@ strfold(char *str, size_t width)
 	char buf[8192], *p = buf, *spc = NULL;
 	memset(buf, 0x0, sizeof(buf));
 
+	if (width == strlen(str)) {
+		lnklist_push(l, strdup(str));
+		return l;
+	}
+
 	while (*str) {
 		/* we're over width... */
 		if ((size_t)(p - buf) >= width) {
