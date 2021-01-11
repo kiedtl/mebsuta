@@ -8,10 +8,20 @@ command_follow(size_t argc, char **argv)
 	CURLU *c_url = NULL;
 
 	if (end == argv[1]) {
+		char url[4096];
+		memset(url, 0x0, sizeof(url));
+
+		/* add the missing gemini:// */
+		if (strncmp("gemini://", argv[1], sizeof("gemini://")-1)) {
+			strcpy(url, format("gemini://%s", argv[1]));
+		} else {
+			strcpy(url, argv[1]);
+		}
+
 		c_url = curl_url();
-		CURLUcode rc = curl_url_set(c_url, CURLUPART_URL, argv[1], 0);
+		CURLUcode rc = curl_url_set(c_url, CURLUPART_URL, url, 0);
 		if (rc) {
-			strcpy(ui_message, format("Invalid link '%s'", argv[1]));
+			strcpy(ui_message, format("Invalid link '%s'", url));
 			return;
 		}
 	} else {
