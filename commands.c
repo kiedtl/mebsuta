@@ -15,6 +15,20 @@ command_follow(size_t argc, char **argv)
 	}
 }
 
+static void
+command_vimmer(size_t argc, char **argv)
+{
+	UNUSED(argc);
+	UNUSED(argv);
+
+	char *url = format("gemini://tilde.team/~kiedtl/mebs/vim.gmi?%d,%d",
+			tb_height(), tb_width());
+	CURLU *c_url = curl_url();
+	curl_url_set(c_url, CURLUPART_URL, url, 0);
+
+	follow_link(c_url);
+}
+
 typedef void(*command_func_t)(size_t argc, char **argv);
 
 struct Command {
@@ -24,6 +38,7 @@ struct Command {
 	char *usage;
 } commands[] = {
 	{ "follow", &command_follow, 1, "<link>" },
+	{ "wq",     &command_vimmer, 0,       "" },
 };
 
 static void
