@@ -55,7 +55,7 @@ follow_link(CURLU *url)
 		strcpy(ui_message, format("error: %s",
 			tls_err ? tls_err : strerror(errno)));
 	break; case -5:
-		strcpy(ui_message, format("Could not parse gemtext document"));
+		strcpy(ui_message, format("Could not parse document"));
 	break; default:
 		hist_add(g);
 	}
