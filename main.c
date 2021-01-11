@@ -36,13 +36,12 @@ static struct Gemdoc *g = NULL, *old = NULL;
 static void
 follow_link(CURLU *url)
 {
-	/* take a copy, since we'll be free'ing
-	 * the gemdoc */
+	/* take a copy, as url may be a reference to another gemdoc's
+	 * url, which we'll free separately */
 	url = curl_url_dup(url);
 
 	g = NULL;
 
-	/* TODO: warn the user instead of dying */
 	switch (gemdoc_from_url(&g, url)) {
 	break; case -1:;
 		char *scheme;
