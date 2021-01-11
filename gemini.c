@@ -91,12 +91,11 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 	if (!conn_conn(host, port ? port : "1965")) return -2;
 	free(host);
 
-	if (!conn_send(clurl) || !conn_send("\r\n")) return -3;
-	free(clurl);
+	if (!conn_send(format("%s\r\n", clurl))) return -3;
 
-	while ((r = conn_recv(bufsrv, max)) != -1) {
+	while ((r = conn_recv(bufsrv, max - 1 - rc)) != -1) {
 		if (r == -2) return -4;
-		else if (r ==  0) continue;
+		else if (r == 0) continue;
 
 		rc += r;
 		char *end, *ptr = (char *) &bufsrv;
