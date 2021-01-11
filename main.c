@@ -14,6 +14,7 @@
 #include "curl/url.h"
 #include "history.h"
 #include "gemini.h"
+#include "tbrl.h"
 #include "termbox.h"
 #include "ui.h"
 #include "util.h"
@@ -29,6 +30,39 @@ signal_fatal(int sig)
 	die("received signal %s (%d); aborting.",
 		sigstrs[sig] ? sigstrs[sig] : "???", sig);
 }
+
+static struct Gemdoc *g = NULL, *old = NULL;
+
+static void
+follow_link(CURLU *url)
+{
+	/* take a copy, since we'll be free'ing
+	 * the gemdoc */
+	url = curl_url_dup(url);
+
+	g = NULL;
+
+	/* TODO: warn the user instead of dying */
+	switch (gemdoc_from_url(&g, url)) {
+	break; case -1:;
+		char *scheme;
+		curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
+		strcpy(ui_message,
+			format("Unsupported scheme '%s'", scheme));
+		free(scheme);
+	break; case -2: case -3: case -4:
+		strcpy(ui_message, format("TLS error: %s", tls_error(client)));
+	break; case -5:
+		strcpy(ui_message, format("Could not parse gemtext document"));
+	break; default:
+		hist_add(g);
+	}
+
+	ui_set_gemdoc(g);
+	ui_redraw();
+}
+
+#include "commands.c"
 
 int
 main(void)
@@ -74,8 +108,6 @@ main(void)
 	sigaction(SIGFPE,   &fatal, NULL);
 	sigaction(SIGBUS,   &fatal, NULL);
 
-	struct Gemdoc *g = NULL, *old = NULL;
-
 	CURLU *url = curl_url();
 	curl_url_set(url, CURLUPART_URL,
 		"gemini://gemini.circumlunar.space", 0);
@@ -84,6 +116,10 @@ main(void)
 
 	hist_init();
 	hist_add(g);
+
+	tbrl_init();
+	tbrl_enter_callback = &command_run;
+
 	ui_init();
 	ui_set_gemdoc(g);
 
@@ -99,6 +135,12 @@ main(void)
 		if ((ret = tb_peek_event(&ev, 16)) == 0)
 			continue;
 		assert(ret != -1); /* termbox error */
+
+		if (tbrl_len() > 0) {
+			tbrl_handle(&ev);
+			ui_redraw();
+			continue;
+		}
 
 		if (ev.type == TB_EVENT_KEY && ev.key) {
 			switch (ev.key) {
@@ -123,30 +165,7 @@ main(void)
 				if (!gemdoc_find_link(g, ev.ch - '0', &text, &url))
 					break;
 
-				/* take a copy, since we'll be free'ing
-				 * the gemdoc */
-				url = curl_url_dup(url);
-
-				g = NULL;
-
-				/* TODO: warn the user instead of dying */
-				switch (gemdoc_from_url(&g, url)) {
-				break; case -1:;
-					char *scheme;
-					curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
-					strcpy(ui_message,
-						format("Unsupported scheme '%s'", scheme));
-					free(scheme);
-				break; case -2: case -3: case -4:
-					strcpy(ui_message, format("TLS error: %s", tls_error(client)));
-				break; case -5:
-					strcpy(ui_message, format("Could not parse gemtext document"));
-				break; default:
-					hist_add(g);
-				}
-
-				ui_set_gemdoc(g);
-				ui_redraw();
+				follow_link(url);
 			break; case 'g':
 				ui_vscroll = 0;
 				ui_redraw();
@@ -191,6 +210,9 @@ main(void)
 				}
 
 				ui_set_gemdoc(g);
+			break; case ':':
+				tbrl_handle(&ev);
+				ui_redraw();
 			}
 		}
 	}

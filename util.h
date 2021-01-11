@@ -5,6 +5,7 @@
 #include "list.h"
 
 #define UNUSED(VAR) ((void) (VAR))
+#define SIZEOF(ARR) (sizeof(ARR)/sizeof(*(ARR)))
 
 void die(const char *fmt, ...);
 char *format(const char *format, ...);

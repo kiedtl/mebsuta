@@ -3,7 +3,7 @@ CMD      = @
 VERSION  = 0.1.0
 NAME     = mebs
 SRC      = main.c util.c conn.c list.c gemini.c history.c ui.c \
-	   mirc.c \
+	   tbrl.c mirc.c \
 	   strlcpy.c curl/url.c curl/escape.c
 OBJ      = $(SRC:.c=.o)
 
@@ -33,6 +33,8 @@ run: $(NAME)
 .c.o: $(HDR)
 	@printf "    %-8s%s\n" "CC" $@
 	$(CMD)$(CC) -c $< -o $(<:.c=.o) $(CFLAGS)
+
+main.o: commands.c
 
 $(NAME): $(OBJ) $(UTF8PROC) $(TERMBOX)
 	@printf "    %-8s%s\n" "CCLD" $@

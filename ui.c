@@ -10,6 +10,7 @@
 #include "history.h"
 #include "list.h"
 #include "mirc.h"
+#include "tbrl.h"
 #include "termbox.h"
 #include "ui.h"
 #include "util.h"
@@ -345,11 +346,22 @@ ui_redraw(void)
 
 	/* inputline */
 	tb_clearline(height-1, &((struct tb_cell){0, 0, 0}));
-	if (strlen(ui_message) > 0) {
+
+	if (tbrl_len() > 0) {
+		for (size_t i = 0; i < tbrl_len(); ++i) {
+			tb_change_cell(i, height-1, tbrl_buf[i], 0, 0);
+		}
+		tb_set_cursor(height-1, tbrl_cursor);
+	} else if (strlen(ui_message) > 0) {
 		size_t padwidth = width - strlen(ui_message) - strlen(DISMISS);
 		tb_writeline(height-1, format("%s%s\00314%s",
 			ui_message, strrep(' ', padwidth-1), DISMISS), 0);
 	}
+
+	if (tbrl_len() > 0)
+		tb_set_cursor(tbrl_cursor, height-1);
+	else
+		tb_set_cursor(TB_HIDE_CURSOR, TB_HIDE_CURSOR);
 
 	free(url);
 	return page_height;
