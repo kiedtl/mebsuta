@@ -35,6 +35,7 @@ enum UiMessageType ui_message_type;
 size_t tb_status = 0;
 const size_t TB_ACTIVE   = 0x01000000;
 const size_t TB_MODIFIED = 0x02000000;
+static size_t ui_height, ui_width;
 
 size_t ui_hscroll = 0, ui_vscroll = 0;
 struct Gemdoc *ui_doc = NULL;
@@ -79,14 +80,16 @@ set_color(uint32_t *old, uint32_t *new, char *color)
 static void
 tb_clearline(size_t line, struct tb_cell *c)
 {
-	int width = tb_width(), col = 0;
-	do tb_put_cell(col, line, c); while (++col < width);
+	int col = 0;
+	do
+		tb_put_cell(col, line, c);
+	while (++col < (int)ui_width);
 }
 
 static void
 tb_writeline(size_t line, char *string, size_t skip)
 {
-	int width = tb_width(), col = 0;
+	int col = 0;
 	struct tb_cell c = { ' ', 0, 0 };
 
 	char colorbuf[4] = { '\0', '\0', '\0', '\0' };
@@ -101,7 +104,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 	/* restore colors of previous line. */
 	c.fg = oldfg, c.bg = oldbg;
 
-	while (*string && col < width) {
+	while (*string && col < (int)ui_width) {
 		switch (*string) {
 		break; case MIRC_BOLD:      ++string; c.fg ^= TB_BOLD;
 		break; case MIRC_UNDERLINE: ++string; c.fg ^= TB_UNDERLINE;
@@ -189,6 +192,9 @@ ui_init(void)
 	tb_select_input_mode(TB_INPUT_ALT|TB_INPUT_MOUSE);
 	tb_select_output_mode(TB_OUTPUT_256);
 
+	ui_height = (size_t)tb_height();
+	ui_width = (size_t)tb_width();
+
 	memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
 }
 
@@ -271,8 +277,6 @@ _ui_redraw_rendered_doc(void)
 	assert(ui_doc != NULL);
 
 	size_t line = 0;
-	size_t height = (size_t) tb_height();
-	size_t width = (size_t) tb_width();
 
 	size_t links = 0, page_height = 0;
 	ssize_t scrollctr = ui_vscroll;
@@ -285,14 +289,14 @@ _ui_redraw_rendered_doc(void)
 		}
 
 		size_t fold_width = l->type == GEM_DATA_PREFORMAT ?
-			strlen(text) : width - 5;
+			strlen(text) : ui_width - 5;
 		size_t i = 1;
 		struct lnklist *t, *folded = strfold(text, fold_width);
 		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
 			tb_writeline(line, fmt, ui_hscroll);
-			if (++line >= height-3) break;
+			if (++line >= ui_height-3) break;
 		}
 		page_height += lnklist_len(folded);
 		lnklist_free_all(folded);
@@ -304,14 +308,13 @@ _ui_redraw_rendered_doc(void)
 static size_t
 _ui_redraw_raw_doc(void)
 {
-	size_t height = (size_t) tb_height();
 	size_t line = 0, page_height = 0;
 	ssize_t scrollctr = ui_vscroll;
 	for (struct lnklist *c = ui_doc->rawdoc->next; c; c = c->next) {
 		if (--scrollctr >= 0) continue;
 		tb_writeline(line, (char *)c->data, ui_hscroll);
 		++page_height;
-		if (++line >= height-3) break;
+		if (++line >= ui_height-3) break;
 	}
 	return page_height;
 }
@@ -321,9 +324,6 @@ ui_redraw(void)
 {
 	assert(ui_doc != NULL);
 	tb_clear();
-
-	size_t height = (size_t) tb_height();
-	size_t width = (size_t) tb_width();
 
 	size_t page_height = 0;
 	if (ui_raw_doc) page_height = _ui_redraw_raw_doc();
@@ -338,29 +338,29 @@ ui_redraw(void)
 
 	strcpy(lstatus, format("%3d%%", (ui_vscroll * 100) / (page_height)));
 	strcpy(rstatus, format("%s", url));
-	pad = strrep(' ', width - strlen(lstatus) - strlen(rstatus) - 2);
+	pad = strrep(' ', ui_width - strlen(lstatus) - strlen(rstatus) - 2);
 
-	tb_writeline(height-2, format("\x16 %s%s%s ",
+	tb_writeline(ui_height-2, format("\x16 %s%s%s ",
 				lstatus, pad, rstatus), 0);
 
 	/* inputline */
-	tb_clearline(height-1, &((struct tb_cell){0, 0, 0}));
+	tb_clearline(ui_height-1, &((struct tb_cell){0, 0, 0}));
 
 	if (tbrl_len() > 0) {
 		for (size_t i = 0; i < tbrl_len(); ++i) {
-			tb_change_cell(i, height-1, tbrl_buf[i], 0, 0);
+			tb_change_cell(i, ui_height-1, tbrl_buf[i], 0, 0);
 		}
-		tb_set_cursor(height-1, tbrl_cursor);
+		tb_set_cursor(ui_height-1, tbrl_cursor);
 
 		ui_message(0, ""); /* remove message if there */
 	} else if (strlen(ui_messagebuf) > 0) {
-		size_t padwidth = width - strlen(ui_messagebuf) - strlen(DISMISS);
-		tb_writeline(height-1, format("%s%s\00314%s",
+		size_t padwidth = ui_width - strlen(ui_messagebuf) - strlen(DISMISS);
+		tb_writeline(ui_height-1, format("%s%s\00314%s",
 			ui_messagebuf, strrep(' ', padwidth-1), DISMISS), 0);
 	}
 
 	if (tbrl_len() > 0)
-		tb_set_cursor(tbrl_cursor, height-1);
+		tb_set_cursor(tbrl_cursor, ui_height-1);
 	else
 		tb_set_cursor(TB_HIDE_CURSOR, TB_HIDE_CURSOR);
 
