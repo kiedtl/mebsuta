@@ -62,14 +62,13 @@ follow_link(CURLU *url)
 	break; case -1:;
 		char *scheme;
 		curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
-		strcpy(ui_message,
-			format("Unsupported scheme '%s'", scheme));
+		ui_message(UI_STOP, "Unsupported URL scheme '%s'", scheme);
 		free(scheme);
 	break; case -2: case -3: case -4:;
-		strcpy(ui_message, format("error: %s", error));
+		ui_message(UI_STOP, "error: %s", error);
 		if (error) free(error);
 	break; case -5:
-		strcpy(ui_message, format("Could not parse document"));
+		ui_message(UI_STOP, "Could not parse document.");
 	}
 
 	hist_add(g);

@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
@@ -19,7 +21,7 @@
 static const struct timeval REFRESH = { 0, 1024 };
 
 static const char *DISMISS = "-- Press <Enter> to dismiss --";
-char ui_message[255];
+char ui_messagebuf[255];
 enum UiMessageType ui_message_type;
 
 /*
@@ -187,7 +189,7 @@ ui_init(void)
 	tb_select_input_mode(TB_INPUT_ALT|TB_INPUT_MOUSE);
 	tb_select_output_mode(TB_OUTPUT_256);
 
-	memset(ui_message, 0x0, sizeof(ui_message));
+	memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
 }
 
 /*
@@ -349,10 +351,12 @@ ui_redraw(void)
 			tb_change_cell(i, height-1, tbrl_buf[i], 0, 0);
 		}
 		tb_set_cursor(height-1, tbrl_cursor);
-	} else if (strlen(ui_message) > 0) {
-		size_t padwidth = width - strlen(ui_message) - strlen(DISMISS);
+
+		ui_message(0, ""); /* remove message if there */
+	} else if (strlen(ui_messagebuf) > 0) {
+		size_t padwidth = width - strlen(ui_messagebuf) - strlen(DISMISS);
 		tb_writeline(height-1, format("%s%s\00314%s",
-			ui_message, strrep(' ', padwidth-1), DISMISS), 0);
+			ui_messagebuf, strrep(' ', padwidth-1), DISMISS), 0);
 	}
 
 	if (tbrl_len() > 0)
@@ -364,14 +368,28 @@ ui_redraw(void)
 	return page_height;
 }
 
+void __attribute__((format(printf, 2, 3)))
+ui_message(enum UiMessageType type, const char *fmt, ...)
+{
+	ui_message_type = type;
+	memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
+
+	va_list ap;
+	va_start(ap, fmt);
+	int len = vsnprintf(ui_messagebuf,
+			sizeof(ui_messagebuf), fmt, ap);
+	assert((size_t) len < sizeof(ui_messagebuf));
+	va_end(ap);
+}
+
 void
 ui_handle(struct tb_event *ev)
 {
 	if (ev->type == TB_EVENT_KEY && ev->key) {
 		switch (ev->key) {
 		break; case TB_KEY_ENTER:
-			if (strlen(ui_message) == 0) break;
-			memset(ui_message, 0x0, sizeof(ui_message));
+			if (strlen(ui_messagebuf) == 0) break;
+			memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
 		break; case TB_KEY_CTRL_U:
 			ui_raw_doc = !ui_raw_doc;
 		}

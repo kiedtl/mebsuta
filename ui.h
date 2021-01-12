@@ -5,12 +5,12 @@
 #include "termbox.h"
 
 enum UiMessageType {
-	UI_MSG_WARN = 1,
-	UI_MSG_INFO = 2,
-	UI_MSG_STOP = 3
+	UI_WARN = 1,
+	UI_INFO = 2,
+	UI_STOP = 3
 };
 
-extern char ui_message[255];
+extern char ui_messagebuf[255];
 extern enum UiMessageType ui_message_type;
 
 extern size_t tb_status;
@@ -24,6 +24,7 @@ void ui_init(void);
 void ui_present(void);
 void ui_set_gemdoc(struct Gemdoc *g);
 size_t ui_redraw(void);
+void ui_message(enum UiMessageType type, const char *fmt, ...);
 void ui_handle(struct tb_event *ev);
 void ui_shutdown(void);
 

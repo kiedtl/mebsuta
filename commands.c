@@ -22,14 +22,14 @@ command_follow(size_t argc, char **argv)
 		CURLUcode rc = curl_url_set(c_url, CURLUPART_URL, url, 0);
 		if (rc) {
 			curl_url_cleanup(c_url);
-			strcpy(ui_message, format("Invalid link '%s'", url));
+			ui_message(UI_STOP, "Invalid URL '%s'", url);
 			return;
 		}
 	} else {
 		char *text = NULL;
 
 		if (!gemdoc_find_link(g, link, &text, &c_url)) {
-			strcpy(ui_message, format("No such link '%zu'", link));
+			ui_message(UI_STOP, "No such link '%zu'", link);
 			return;
 		}
 	}
@@ -85,8 +85,8 @@ command_run(char *buf)
 		if (strcmp(commands[i].name, argv[0])) continue;
 
 		if (argc < (commands[i].args+1)) {
-			strcpy(ui_message, format("Usage: :%s %s",
-					commands[i].name, commands[i].usage));
+			ui_message(UI_WARN, "Usage: :%s %s",
+				commands[i].name, commands[i].usage);
 			return;
 		}
 
