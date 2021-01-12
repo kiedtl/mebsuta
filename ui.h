@@ -18,7 +18,13 @@ extern const size_t TB_ACTIVE, TB_MODIFIED;
 extern size_t ui_vscroll, ui_hscroll;
 extern struct Gemdoc *ui_doc;
 
-extern _Bool ui_raw_doc;
+enum UiDocumentMode {
+	UI_DOCNORM    = (1<<1),
+	UI_DOCRAW     = (1<<3),
+	UI_DOCRAWLINK = (1<<2)
+};
+
+extern enum UiDocumentMode ui_doc_mode;
 
 void ui_init(void);
 void ui_present(void);

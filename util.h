@@ -6,6 +6,7 @@
 
 #define UNUSED(VAR) ((void) (VAR))
 #define SIZEOF(ARR) (sizeof(ARR)/sizeof(*(ARR)))
+#define BITSET(V,B) (((V) & (B)) == (B))
 
 void die(const char *fmt, ...);
 char *format(const char *format, ...);

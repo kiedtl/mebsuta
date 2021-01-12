@@ -20,17 +20,16 @@
 /* maximum rate at which the screen is refreshed */
 static const struct timeval REFRESH = { 0, 1024 };
 
-static const char *DISMISS = "-- Press <Enter> to dismiss --";
+static const char *DISMISS = "-- Press Enter to dismiss --";
 char ui_messagebuf[255];
 enum UiMessageType ui_message_type;
 
 /*
- * keep track of termbox's state, so
- * that we know if tb_shutdown() is safe to call,
- * and whether we can redraw the screen.
+ * keep track of termbox's state, so that we know if
+ * tb_shutdown() is safe to call, and whether we should redraw.
  *
- * calling tb_shutdown twice, or before tb_init,
- * results in a call to abort().
+ * (Calling tb_shutdown twice, or before tb_init, results in
+ * a call to abort().)
  */
 size_t tb_status = 0;
 const size_t TB_ACTIVE   = 0x01000000;
@@ -39,7 +38,7 @@ static size_t ui_height, ui_width;
 
 size_t ui_hscroll = 0, ui_vscroll = 0;
 struct Gemdoc *ui_doc = NULL;
-_Bool ui_raw_doc = false;
+enum UiDocumentMode ui_doc_mode = UI_DOCNORM;
 
 /*
  * tpresent: last time tb_present() was called.
@@ -233,7 +232,8 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		break; case GEM_DATA_QUOTE:
 			return format(" > \00314%s", text);
 		break; case GEM_DATA_LINK:;
-			char attr = l->text ? '\x0f' : '\x1f';
+			char attr = l->text && !BITSET(ui_doc_mode, UI_DOCRAWLINK)
+					? '\x0f' : '\x1f';
 			char *padding = strrep(' ', strlen(format("[%zu]", lnk)));
 			return format("%s %c\003%zu%s", padding, attr,
 					link_color(l->link_url), text);
@@ -254,7 +254,8 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 	break; case GEM_DATA_QUOTE:
 		return format(" > \00314%s", text);
 	break; case GEM_DATA_LINK:;
-		char attr = l->text ? '\x0f' : '\x1f';
+		char attr = l->text && !BITSET(ui_doc_mode, UI_DOCRAWLINK)
+				? '\x0f' : '\x1f';
 		return format("\x02[%zu]\x0f %c\003%zu%s", lnk, attr,
 				link_color(l->link_url), text);
 	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
@@ -283,9 +284,11 @@ _ui_redraw_rendered_doc(void)
 	for (struct lnklist *c = ui_doc->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 		char *text = l->text;
+
 		if (l->type == GEM_DATA_LINK) {
 			++links;
-			text = l->text ? l->text : l->raw_link_url;
+			text = l->text && !BITSET(ui_doc_mode, UI_DOCRAWLINK)
+				? l->text : l->raw_link_url;
 		}
 
 		size_t fold_width = l->type == GEM_DATA_PREFORMAT ?
@@ -326,7 +329,8 @@ ui_redraw(void)
 	tb_clear();
 
 	size_t page_height = 0;
-	if (ui_raw_doc) page_height = _ui_redraw_raw_doc();
+	if (BITSET(ui_doc_mode, UI_DOCRAW))
+		page_height = _ui_redraw_raw_doc();
 	else page_height = _ui_redraw_rendered_doc();
 
 	/* add 1 to page_height to prevent div-by-0 errors below */
@@ -391,7 +395,12 @@ ui_handle(struct tb_event *ev)
 			if (strlen(ui_messagebuf) == 0) break;
 			memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
 		break; case TB_KEY_CTRL_U:
-			ui_raw_doc = !ui_raw_doc;
+			ui_doc_mode ^= UI_DOCRAW;
+		}
+	} else if (ev->type == TB_EVENT_KEY && ev->ch) {
+		switch(ev->ch) {
+		break; case 'p':
+			ui_doc_mode ^= UI_DOCRAWLINK;
 		}
 	}
 }
