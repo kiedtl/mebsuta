@@ -67,6 +67,7 @@ gemdoc_new(CURLU *url)
 ssize_t
 gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 {
+	ssize_t status = 0;
 	*g = gemdoc_new(url);
 
 	char bufsrv[4096]; /* buffer for server data */
@@ -74,36 +75,43 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 	ssize_t r = 0; /* return code of conn_recv */
 	size_t max = sizeof(bufsrv) - 1;
 
-	conn_init();
-
 	CURLUcode c_rc;
 	char *scheme, *host, *port, *clurl;
 
 	/* wait, did you say gopher? */
 	c_rc = curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
 	if (c_rc || strcmp(scheme, "gemini")) return -1;
-	free(scheme);
 
 	c_rc = curl_url_get(url, CURLUPART_HOST, &host, 0);
 	c_rc = curl_url_get(url, CURLUPART_PORT, &port, 0);
 	c_rc = curl_url_get(url, CURLUPART_URL, &clurl, 0);
 
-	if (!conn_conn(host, port ? port : "1965")) return -2;
-	free(host);
+	if (!conn_conn(host, port ? port : "1965")) {
+		status = -2;
+		goto cleanup;
+	}
 
-	if (!conn_send(format("%s\r\n", clurl))) return -3;
+	if (!conn_send(format("%s\r\n", clurl))) {
+		status = -3;
+		goto cleanup;
+	}
 
 	while ((r = conn_recv(bufsrv, max - 1 - rc)) != -1) {
-		if (r == -2) return -4;
-		else if (r == 0) continue;
+		if (r == -2) {
+			status = -4;
+			goto cleanup;
+		} else if (r == 0)
+			continue;
 
 		rc += r;
 		char *end, *ptr = (char *) &bufsrv;
 
 		while ((end = memchr(ptr, '\n', &bufsrv[rc] - ptr))) {
 			*end = '\0';
-			if (!gemdoc_parse(*g, ptr))
-				return -5;
+			if (!gemdoc_parse(*g, ptr)) {
+				status = -5;
+				goto cleanup;
+			}
 			ptr = end + 1;
 		}
 
@@ -111,9 +119,12 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 		memmove(&bufsrv, ptr, rc);
 	};
 
-	conn_close();
-	conn_shutdown();
-	return 0;
+cleanup:
+	free(scheme);
+	free(host);
+	free(port);
+	free(clurl);
+	return status;
 }
 
 _Bool
@@ -233,24 +244,20 @@ gemdoc_free(struct Gemdoc *g)
 
 	struct lnklist *c;
 
-	for (c = g->rawdoc->next; c; c = c->next)
-		if (c->data) free(c->data);
-
 	for (c = g->document->next; c; c = c->next) {
 		if (!c->data) continue;
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 
-		if (l->type == GEM_DATA_LINK)
+		if (l->type == GEM_DATA_LINK) {
 			curl_url_cleanup(l->link_url);
+			if (l->raw_link_url) free(l->raw_link_url);
+		}
 
-		if (l->text)
-			free(l->text);
-
-		free(l);
+		if (l->text) free(l->text);
 	}
 
-	if (g->rawdoc)   lnklist_free(g->rawdoc);
-	if (g->document) lnklist_free(g->document);
+	if (g->rawdoc)   lnklist_free_all(g->rawdoc);
+	if (g->document) lnklist_free_all(g->document);
 	if (g->url)      curl_url_cleanup(g->url);
 
 	free(g);

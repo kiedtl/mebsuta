@@ -21,6 +21,7 @@ command_follow(size_t argc, char **argv)
 		c_url = curl_url();
 		CURLUcode rc = curl_url_set(c_url, CURLUPART_URL, url, 0);
 		if (rc) {
+			curl_url_cleanup(c_url);
 			strcpy(ui_message, format("Invalid link '%s'", url));
 			return;
 		}
@@ -34,6 +35,9 @@ command_follow(size_t argc, char **argv)
 	}
 
 	follow_link(c_url);
+
+	/* free, since follow_link takes a copy */
+	curl_url_cleanup(c_url);
 }
 
 static void

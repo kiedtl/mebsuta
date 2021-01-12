@@ -19,32 +19,26 @@ lnklist_new(void)
 
 /*
  * get first node (head) of list.
- *
- * returns list if it points to list head.
  */
 struct lnklist *
 lnklist_head(struct lnklist *list)
 {
 	if (list == NULL) return NULL;
 
-	struct lnklist *head = list, *ctr = list->prev;
-	for (; ctr != NULL; head = ctr, ctr = ctr->prev);
+	struct lnklist *head = list, *c = list->prev;
+	while (c) head = c, c = c->prev;
 
 	return head;
 }
 
-/*
- * get last node of list.
- *
- * returns list if list->next is null
- */
+/* get last node of list. */
 struct lnklist *
 lnklist_tail(struct lnklist *list)
 {
 	if (list == NULL) return NULL;
 
-	struct lnklist *tail = list, *ctr = list->next;
-	for (; ctr != NULL; tail = ctr, ctr = ctr->next);
+	struct lnklist *tail = list, *c = list->next;
+	while (c) tail = c, c = c->next;
 
 	return tail;
 }
@@ -124,12 +118,26 @@ _Bool
 lnklist_free(struct lnklist *list)
 {
 	/* rewind */
-	struct lnklist *head, *c;
+	struct lnklist *head, *ca, *cb;
 	if ((head = lnklist_head(list)) == NULL)
 		return false;
+	for (ca = head, cb = head->next; cb; ca = cb, cb = cb->next)
+		if (cb->prev) free(cb->prev);
+	free(ca);
 
-	for (c = head->next; c != NULL; c = c->next)
-		if (c->prev) free(c->prev);
+	return true;
+}
 
+/* free the list's data *and* the list using free(3). */
+_Bool
+lnklist_free_all(struct lnklist *list)
+{
+	struct lnklist *head, *c;
+	if (!(head = lnklist_head(list))) return false;
+
+	for (c = head; c; c = c->next)
+		if (c->data) free(c->data);
+
+	lnklist_free(list);
 	return true;
 }

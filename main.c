@@ -33,6 +33,21 @@ signal_fatal(int sig)
 
 static struct Gemdoc *g = NULL, *old = NULL;
 
+static ssize_t
+make_request(struct Gemdoc **g, CURLU *url, char **e)
+{
+	conn_init();
+	ssize_t r = gemdoc_from_url(g, url);
+	if (r != 0 && e != NULL) {
+		*e = (char *)tls_error(client);
+		if (*e) *e = strdup(*e);
+		else *e = strdup(strerror(errno));
+	}
+	if (conn_active()) conn_close();
+	conn_shutdown();
+	return r;
+}
+
 static void
 follow_link(CURLU *url)
 {
@@ -41,8 +56,9 @@ follow_link(CURLU *url)
 	url = curl_url_dup(url);
 
 	g = NULL;
+	char *error;
 
-	switch (gemdoc_from_url(&g, url)) {
+	switch (make_request(&g, url, &error)) {
 	break; case -1:;
 		char *scheme;
 		curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
@@ -50,15 +66,13 @@ follow_link(CURLU *url)
 			format("Unsupported scheme '%s'", scheme));
 		free(scheme);
 	break; case -2: case -3: case -4:;
-		const char *tls_err = tls_error(client);
-		strcpy(ui_message, format("error: %s",
-			tls_err ? tls_err : strerror(errno)));
+		strcpy(ui_message, format("error: %s", error));
+		if (error) free(error);
 	break; case -5:
 		strcpy(ui_message, format("Could not parse document"));
-	break; default:
-		hist_add(g);
 	}
 
+	hist_add(g);
 	ui_set_gemdoc(g);
 	ui_redraw();
 }
@@ -113,7 +127,7 @@ main(void)
 	curl_url_set(url, CURLUPART_URL,
 		"gemini://gemini.circumlunar.space", 0);
 
-	gemdoc_from_url(&g, url);
+	make_request(&g, url, NULL);
 
 	hist_init();
 	hist_add(g);

@@ -90,7 +90,7 @@ hist_forw(void)
 void
 hist_free(void)
 {
-	for (size_t i = histpos; i < MAXHISTSZ; ++i) {
+	for (size_t i = 0; i < MAXHISTSZ; ++i) {
 		gemdoc_free(history[i]);
 		history[i] = NULL;
 	}

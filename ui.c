@@ -48,13 +48,15 @@ struct timeval tcurrent = { 0, 0 };
 static size_t
 link_color(CURLU *u)
 {
-	char *scheme;
+	char *scheme, color;
 	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
 	if (!scheme || strcmp(scheme, "gemini"))
-		return MIRC_RED;
+		color = MIRC_RED;
 	if (hist_contains(u) > 0)
-		return MIRC_MAGENTA;
-	return MIRC_BLUE;
+		color = MIRC_MAGENTA;
+	color = MIRC_BLUE;
+	free(scheme);
+	return color;
 }
 
 const size_t attribs[] = { TB_BOLD, TB_UNDERLINE, TB_REVERSE };
@@ -288,11 +290,10 @@ _ui_redraw_rendered_doc(void)
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
 			tb_writeline(line, fmt, ui_hscroll);
-			free(t->data);
 			if (++line >= height-3) break;
 		}
 		page_height += lnklist_len(folded);
-		lnklist_free(folded);
+		lnklist_free_all(folded);
 	}
 
 	return page_height;

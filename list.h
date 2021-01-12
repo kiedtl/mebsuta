@@ -18,5 +18,6 @@ struct lnklist *lnklist_ref(struct lnklist *list, size_t n);
 void  *lnklist_pop(struct lnklist *list);
 ssize_t lnklist_len(struct lnklist *list);
 _Bool  lnklist_free(struct lnklist *list);
+_Bool lnklist_free_all(struct lnklist *list);
 
 #endif
