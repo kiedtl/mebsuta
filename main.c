@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "conn.h"
+#include "config.h"
 #include "curl/url.h"
 #include "history.h"
 #include "gemini.h"
@@ -49,7 +50,7 @@ make_request(struct Gemdoc **g, CURLU *url, char **e)
 }
 
 static void
-follow_link(CURLU *url)
+follow_link(CURLU *url, size_t redirects)
 {
 	/* take a copy, as url may be a reference to another gemdoc's
 	 * url, which we'll free separately */
@@ -71,6 +72,31 @@ follow_link(CURLU *url)
 		ui_message(UI_STOP, "Could not parse document.");
 	}
 
+	/* now let's check for input and redirects */
+	switch (g->type) {
+	break; case GEM_TYPE_INPUT:
+		tbrl_setbuf(":input ");
+	break; case GEM_TYPE_REDIRECT:;
+		CURLUcode error;
+		CURLU *rurl = curl_url_dup(g->url);
+		error = curl_url_set(rurl, CURLUPART_URL, g->meta, 0);
+		if (error) {
+			ui_message(UI_WARN, "Invalid redirect URL.");
+			goto show;
+		}
+
+		if (c_automatic_redirects
+				&& redirects < c_maximum_redirects) {
+			follow_link(rurl, redirects + 1);
+		} else {
+			char *urlbuf;
+			curl_url_get(rurl, CURLUPART_URL, &urlbuf, 0);
+			tbrl_setbuf(format(":go %s", urlbuf));
+			free(urlbuf);
+		}
+	}
+
+show:
 	hist_add(g);
 	ui_set_gemdoc(g);
 	ui_redraw();
@@ -179,7 +205,7 @@ main(void)
 				if (!gemdoc_find_link(g, ev.ch - '0', &text, &url))
 					break;
 
-				follow_link(url);
+				follow_link(url, 0);
 			break; case 'g':
 				ui_vscroll = 0;
 				ui_redraw();
@@ -225,7 +251,7 @@ main(void)
 
 				ui_set_gemdoc(g);
 			break; case 'r':
-				follow_link(g->url);
+				follow_link(g->url, 0);
 			break; case ':':
 				tbrl_handle(&ev);
 				ui_redraw();

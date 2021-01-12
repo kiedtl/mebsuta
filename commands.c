@@ -1,7 +1,20 @@
 static void
-command_follow(size_t argc, char **argv)
+command_input(size_t argc, char **argv, char *rawargs)
 {
 	UNUSED(argc);
+	UNUSED(argv);
+
+	CURLU *c_url = curl_url_dup(g->url);
+	curl_url_set(c_url, CURLUPART_QUERY, rawargs, CURLU_URLENCODE);
+
+	follow_link(c_url, 0);
+}
+
+static void
+command_follow(size_t argc, char **argv, char *rawargs)
+{
+	UNUSED(argc);
+	UNUSED(rawargs);
 
 	char *end = NULL;
 	size_t link = strtol(argv[1], &end, 0);
@@ -34,27 +47,28 @@ command_follow(size_t argc, char **argv)
 		}
 	}
 
-	follow_link(c_url);
+	follow_link(c_url, 0);
 
 	/* free, since follow_link takes a copy */
 	curl_url_cleanup(c_url);
 }
 
 static void
-command_vimmer(size_t argc, char **argv)
+command_vimmer(size_t argc, char **argv, char *rawargs)
 {
 	UNUSED(argc);
 	UNUSED(argv);
+	UNUSED(rawargs);
 
 	char *url = format("gemini://tilde.team/~kiedtl/mebs/vim.gmi?%d,%d",
 			tb_height(), tb_width());
 	CURLU *c_url = curl_url();
 	curl_url_set(c_url, CURLUPART_URL, url, 0);
 
-	follow_link(c_url);
+	follow_link(c_url, 0);
 }
 
-typedef void(*command_func_t)(size_t argc, char **argv);
+typedef void(*command_func_t)(size_t argc, char **argv, char *rawargs);
 
 struct Command {
 	char *name;
@@ -62,18 +76,25 @@ struct Command {
 	size_t args;
 	char *usage;
 } commands[] = {
-	{ "go",   &command_follow, 1, "<link/url>" },
-	{ "wq",   &command_vimmer, 0,           "" },
+	{ "go",    &command_follow, 1, "<link/url>" },
+	{ "input", &command_input,  1,    "<input>" },
+	{ "wq",    &command_vimmer, 0,           "" },
 };
 
+/* TODO: use uint32_t instead of char for strings, and leverage
+ * c11/c17 features when doing so */
 static void
 command_run(char *buf)
 {
-	char *argv[255];
+	char *argv[255], rawargs[4096], *end;
 	size_t argc = 0;
 
 	assert(buf[0] == ':');
 	++buf;
+
+	memset(rawargs, 0x0, sizeof(rawargs));
+	if ((end = memchr(buf, ' ', strlen(buf))))
+		strcpy(rawargs, end + 1);
 
 	char *arg;
 	while ((arg = strsep(&buf, " "))) {
@@ -90,7 +111,7 @@ command_run(char *buf)
 			return;
 		}
 
-		(commands[i].func)(++argc, argv);
+		(commands[i].func)(++argc, argv, rawargs);
 		return;
 	}
 

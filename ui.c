@@ -322,6 +322,21 @@ _ui_redraw_raw_doc(void)
 	return page_height;
 }
 
+static size_t
+_ui_redraw_other_doc(void)
+{
+	struct Gemtok line = {
+		.type = GEM_DATA_HEADER1,
+		.text = strdup(format("%d %s",
+				ui_doc->status, ui_doc->meta))
+	};
+
+	tb_writeline(0,
+		format_elem(&line, line.text, 0, 1), ui_hscroll);
+
+	return 1;
+}
+
 size_t
 ui_redraw(void)
 {
@@ -329,9 +344,13 @@ ui_redraw(void)
 	tb_clear();
 
 	size_t page_height = 0;
-	if (BITSET(ui_doc_mode, UI_DOCRAW))
-		page_height = _ui_redraw_raw_doc();
-	else page_height = _ui_redraw_rendered_doc();
+	if (ui_doc->status == GEM_STATUS_SUCCESS) {
+		if (BITSET(ui_doc_mode, UI_DOCRAW))
+			page_height = _ui_redraw_raw_doc();
+		else page_height = _ui_redraw_rendered_doc();
+	} else {
+		page_height = _ui_redraw_other_doc();
+	}
 
 	/* add 1 to page_height to prevent div-by-0 errors below */
 	page_height = page_height + 1;
