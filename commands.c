@@ -62,8 +62,8 @@ struct Command {
 	size_t args;
 	char *usage;
 } commands[] = {
-	{ "go", &command_follow, 1, "<link/url>" },
-	{ "wq", &command_vimmer, 0,           "" },
+	{ "go",   &command_follow, 1, "<link/url>" },
+	{ "wq",   &command_vimmer, 0,           "" },
 };
 
 static void
@@ -94,6 +94,5 @@ command_run(char *buf)
 		return;
 	}
 
-	/* TODO: warn */
-	strcpy(ui_message, format("No such command '%s'", argv[0]));
+	ui_message(UI_STOP, "No such command '%s'", argv[0]);
 }
