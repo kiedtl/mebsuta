@@ -258,6 +258,12 @@ main(void)
 			break; case ';':
 				tbrl_setbuf(":go ");
 				ui_redraw();
+			break; case 'e':;
+				char *urlbuf;
+				curl_url_get(g->url, CURLUPART_URL, &urlbuf, 0);
+				tbrl_setbuf(format(":go %s", urlbuf));
+				free(urlbuf);
+				ui_redraw();
 			break; default:
 				ui_handle(&ev);
 				ui_redraw();
