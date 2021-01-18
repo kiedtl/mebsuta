@@ -8,8 +8,11 @@
 #include "util.h"
 
 void (*tbrl_enter_callback)(char *buf) = NULL;
+void (*tbrl_complete_callback)(char *buf, size_t curs, char *completebuf) = NULL;
+
 size_t tbrl_cursor = 0;
 uint32_t tbrl_buf[TBRL_BUFSIZE];
+char tbrl_hint[TBRL_BUFSIZE];
 
 static void
 tbrl_reset(void)
@@ -55,13 +58,8 @@ tbrl_handle(struct tb_event *ev)
 			}
 			--tbrl_cursor;
 		break; case TB_KEY_ENTER:;
-			/* allocate 6 times at much memory, since a codepoint
-			 * can take up to size bytes */
-			unsigned char chbuf[TBRL_BUFSIZE*6], *p = chbuf;
-			memset(chbuf, 0x0, sizeof(chbuf));
-			for (size_t codepnt = 0; codepnt < tbrl_len(); ++codepnt) {
-				p += utf8proc_encode_char(tbrl_buf[codepnt], p);
-			}
+			char chbuf[TBRL_BUFSIZE*6];
+			utf8encode(tbrl_buf, tbrl_len(), chbuf, SIZEOF(chbuf));
 			tbrl_reset();
 			(tbrl_enter_callback)((char *)chbuf);
 		break; case TB_KEY_CTRL_G: case TB_KEY_CTRL_C:
@@ -72,6 +70,15 @@ tbrl_handle(struct tb_event *ev)
 		}
 	} else if (ev->type == TB_EVENT_KEY && ev->ch) {
 		assert(ev->ch != '\0');
+
+		/* only show hints if the cursor is at the end */
+		memset(tbrl_hint, 0x0, TBRL_BUFSIZE);
+		if (tbrl_cursor == (tbrl_len() - 1) && tbrl_complete_callback) {
+			char chbuf[TBRL_BUFSIZE*6];
+			utf8encode(tbrl_buf, tbrl_len(), chbuf, SIZEOF(chbuf));
+			(tbrl_complete_callback)(chbuf, tbrl_cursor, tbrl_hint);
+		}
+
 
 		if ((tbrl_cursor+1) <= tbrl_len()) {
 			memmove(&tbrl_buf[tbrl_cursor+1], &tbrl_buf[tbrl_cursor],

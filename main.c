@@ -157,6 +157,7 @@ main(void)
 	hist_add(g);
 
 	tbrl_init();
+	tbrl_complete_callback = &command_complete;
 	tbrl_enter_callback = &command_run;
 
 	ui_init();

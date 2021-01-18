@@ -370,8 +370,12 @@ ui_redraw(void)
 	tb_clearline(ui_height-1, &((struct tb_cell){0, 0, 0}));
 
 	if (tbrl_len() > 0) {
-		for (size_t i = 0; i < tbrl_len(); ++i) {
-			tb_change_cell(i, ui_height-1, tbrl_buf[i], 0, 0);
+		size_t x = 0;
+		for (size_t i = 0; i < tbrl_len(); ++i, ++x) {
+			tb_change_cell(x, ui_height-1, tbrl_buf[i], 0, 0);
+		}
+		for (size_t i = 0; i < strlen(tbrl_hint); ++i, ++x) {
+			tb_change_cell(x, ui_height-1, tbrl_hint[i], 8, 0);
 		}
 		tb_set_cursor(ui_height-1, tbrl_cursor);
 

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <utf8proc.h>
 
 #include "ui.h"
 #include "util.h"
@@ -73,6 +74,15 @@ strrep(char c, size_t n)
 	return (char *) &buf;
 }
 
+size_t
+stroverlap(const char *a, const char *b)
+{
+	size_t i = 0;
+	while (a[i] && b[i] && a[i] == b[i])
+		++i;
+	return i;
+}
+
 struct lnklist *
 strfold(char *str, size_t width)
 {
@@ -124,4 +134,16 @@ strfold(char *str, size_t width)
 	/* push the last line */
 	lnklist_push(l, strdup(buf));
 	return l;
+}
+
+/* XXX: chbuf should allocate 6 times at much memory, since a codepoint
+ * can take up to 6 bytes when encoded */
+void
+utf8encode(uint32_t *utf8, size_t utf8sz, char *chbuf, size_t bufsz)
+{
+	unsigned char *p = (unsigned char *)chbuf;
+	memset((void *)chbuf, 0x0, bufsz);
+	for (size_t codepnt = 0; codepnt < utf8sz; ++codepnt) {
+		p += utf8proc_encode_char(utf8[codepnt], p);
+	}
 }

@@ -117,3 +117,53 @@ command_run(char *buf)
 
 	ui_message(UI_STOP, "No such command '%s'", argv[0]);
 }
+
+static void
+command_complete(char *buf, size_t curs, char *completebuf)
+{
+	/* get rid of prefixed ':' */
+	++buf;
+
+	size_t words = 0;
+	char *wordstart = NULL;
+
+	_Bool in_word = false;
+	for (size_t i = 0; buf[i] && i < curs; ++i) {
+		if (!isblank(buf[i])) {
+			if (!in_word) {
+				wordstart = &buf[i];
+				in_word = true;
+			}
+		} else if (in_word) {
+			++words, in_word = false;
+		}
+	}
+
+	/* add \0 to end of wordstart pointer */
+	buf[curs] = '\0';
+
+	if (!wordstart) return;
+
+	if (words == 0) {
+		for (size_t i = 0; i < SIZEOF(commands); ++i) {
+			if (!strncmp(commands[i].name, wordstart, strlen(wordstart))) {
+				size_t overlap = stroverlap(wordstart, commands[i].name) + 1;
+				strcpy(completebuf, commands[i].name + overlap);
+				return;
+			}
+		}
+	} else {
+		char *urlbuf;
+		for (size_t i = hist_len() - 1; i >= 0; --i) {
+			curl_url_get(history[i]->url, CURLUPART_URL, &urlbuf, 0);
+			if (!urlbuf) continue;
+
+			if (!strncmp(urlbuf, wordstart, strlen(wordstart))) {
+				size_t overlap = stroverlap(wordstart, urlbuf) + 1;
+				strcpy(completebuf, urlbuf + overlap);
+				return;
+			}
+			free(urlbuf);
+		}
+	}
+}
