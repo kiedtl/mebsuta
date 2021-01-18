@@ -149,8 +149,7 @@ main(void)
 	sigaction(SIGBUS,   &fatal, NULL);
 
 	CURLU *url = curl_url();
-	curl_url_set(url, CURLUPART_URL,
-		"gemini://gemini.circumlunar.space", 0);
+	curl_url_set(url, CURLUPART_URL, homepage, 0);
 
 	make_request(&g, url, NULL);
 
