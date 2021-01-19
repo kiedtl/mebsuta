@@ -90,7 +90,7 @@ command_run(char *buf)
 	size_t argc = 0;
 
 	assert(buf[0] == ':');
-	++buf;
+	if (strlen(++buf) == 0) return;
 
 	memset(rawargs, 0x0, sizeof(rawargs));
 	if ((end = memchr(buf, ' ', strlen(buf))))
