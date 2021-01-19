@@ -136,7 +136,23 @@ strfold(char *str, size_t width)
 	return l;
 }
 
-/* XXX: chbuf should allocate 6 times at much memory, since a codepoint
+_Bool
+utf8isblank(uint32_t ch)
+{
+	utf8proc_int32_t cch = (utf8proc_int32_t)ch;
+	assert(utf8proc_codepoint_valid(cch));
+
+	switch (utf8proc_category(cch)) {
+	case UTF8PROC_CATEGORY_ZS:
+	case UTF8PROC_CATEGORY_ZL:
+	case UTF8PROC_CATEGORY_ZP:
+		return true;
+	default:
+		return false;
+	}
+}
+
+/* XXX: chbuf should allocate 6 times as much memory, since a codepoint
  * can take up to 6 bytes when encoded */
 void
 utf8encode(uint32_t *utf8, size_t utf8sz, char *chbuf, size_t bufsz)

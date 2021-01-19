@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -40,6 +41,28 @@ tbrl_handle(struct tb_event *ev)
 {
 	if (ev->type == TB_EVENT_KEY && ev->key) {
 		switch (ev->key) {
+		break; case TB_KEY_HOME: case TB_KEY_CTRL_A:
+			tbrl_cursor = 1; /* move cursor to just after : */
+		break; case TB_KEY_END:  case TB_KEY_CTRL_E:
+			tbrl_cursor = tbrl_len();
+		break; case TB_KEY_CTRL_K:
+			memset(&tbrl_buf[tbrl_cursor], 0x0, tbrl_len() - tbrl_cursor);
+		break; case TB_KEY_CTRL_U:
+			if (tbrl_cursor == 1)
+				return;
+			size_t len = tbrl_len() - tbrl_cursor + 1;
+			/* copy one extra byte in order to add a trailing 0x0.
+			 * this saves a memset call. */
+			memmove(&tbrl_buf[1], &tbrl_buf[tbrl_cursor],
+					(len * CHARSZ + CHARSZ) + 1);
+			tbrl_cursor = 1;
+		break; case TB_KEY_CTRL_W:;
+			size_t word = tbrl_buf[tbrl_cursor] ? tbrl_cursor : tbrl_cursor-1;
+			while (utf8isblank(tbrl_buf[word])  && word > 1) --word;
+			while (!utf8isblank(tbrl_buf[word]) && word > 1) --word;
+			memmove(&tbrl_buf[word], &tbrl_buf[tbrl_cursor],
+					(tbrl_cursor - word) * CHARSZ + CHARSZ + 1);
+			tbrl_cursor = word;
 		break; case TB_KEY_ARROW_LEFT:  case TB_KEY_CTRL_B:
 			if (tbrl_cursor > 0) --tbrl_cursor;
 		break; case TB_KEY_ARROW_RIGHT: case TB_KEY_CTRL_F:
