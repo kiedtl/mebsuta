@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "conn.h"
+#include "util.h"
 
 struct tls *client = NULL;
 

@@ -6,6 +6,7 @@
 #include "curl/url.h"
 #include "history.h"
 #include "gemini.h"
+#include "util.h"
 
 #define MAXHISTSZ 4096
 
