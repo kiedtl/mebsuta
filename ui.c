@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -154,7 +153,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 				continue;
 			}
 	
-			assert(charbuf >= 0);
+			ENSURE(charbuf >= 0);
 			c.ch = (uint32_t) charbuf;
 			string += runelen;
 	
@@ -178,7 +177,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 void
 ui_init(void)
 {
-	assert(gettimeofday(&tpresent, NULL) == 0);
+	ENSURE(gettimeofday(&tpresent, NULL) == 0);
 	char *errstrs[] = {
 		NULL,
 		"termbox: unsupported terminal",
@@ -205,7 +204,7 @@ ui_init(void)
 void
 ui_present(void)
 {
-	assert(gettimeofday(&tcurrent, NULL) == 0);
+	ENSURE(gettimeofday(&tcurrent, NULL) == 0);
 	struct timeval diff;
 	timersub(&tcurrent, &tpresent, &diff);
 
@@ -266,7 +265,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 void
 ui_set_gemdoc(struct Gemdoc *g)
 {
-	assert(g != NULL);
+	ENSURE(g != NULL);
 	ui_vscroll = ui_hscroll = 0;
 	ui_doc = g;
 	ui_redraw();
@@ -275,7 +274,7 @@ ui_set_gemdoc(struct Gemdoc *g)
 static size_t
 _ui_redraw_rendered_doc(void)
 {
-	assert(ui_doc != NULL);
+	ENSURE(ui_doc != NULL);
 
 	size_t line = 0;
 
@@ -340,7 +339,7 @@ _ui_redraw_other_doc(void)
 size_t
 ui_redraw(void)
 {
-	assert(ui_doc != NULL);
+	ENSURE(ui_doc != NULL);
 	tb_clear();
 
 	size_t page_height = 0;
@@ -405,7 +404,7 @@ ui_message(enum UiMessageType type, const char *fmt, ...)
 	va_start(ap, fmt);
 	int len = vsnprintf(ui_messagebuf,
 			sizeof(ui_messagebuf), fmt, ap);
-	assert((size_t) len < sizeof(ui_messagebuf));
+	ENSURE((size_t) len < sizeof(ui_messagebuf));
 	va_end(ap);
 }
 

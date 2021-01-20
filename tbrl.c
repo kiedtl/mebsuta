@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
@@ -92,7 +91,7 @@ tbrl_handle(struct tb_event *ev)
 				{ TB_EVENT_KEY, 0, 0, ' ', 0, 0, 0, 0 }));
 		}
 	} else if (ev->type == TB_EVENT_KEY && ev->ch) {
-		assert(ev->ch != '\0');
+		ENSURE(ev->ch != '\0');
 
 		/* only show hints if the cursor is at the end */
 		memset(tbrl_hint, 0x0, TBRL_BUFSIZE);

@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <ctype.h>
 #include <execinfo.h>
 #include <stdarg.h>
@@ -11,6 +10,13 @@
 #include "ui.h"
 #include "util.h"
 #include "list.h"
+
+void
+__ensure(_Bool expr, char *str, char *file, size_t line, const char *fn)
+{
+	if (expr) return;
+	die("Assertion `%s' failed (%s:%s:%zu).", str, file, fn, line);
+}
 
 _Noreturn void __attribute__((format(printf, 1, 2)))
 die(const char *fmt, ...)
@@ -40,10 +46,15 @@ die(const char *fmt, ...)
 
 		int nptrs = backtrace(buffer, buf_sz);
 		char **strings = backtrace_symbols(buffer, nptrs);
-		assert(strings);
+
+		if (!strings) {
+			/* oopsie daisy, what went wrong here */
+			fprintf(stderr, "Unable to provide backtrace.");
+			_Exit(EXIT_FAILURE);
+		}
 
 		fprintf(stderr, "backtrace:\n");
-		for (size_t i = 0; i < (size_t) nptrs; ++i)
+		for (size_t i = 0; i < (size_t)nptrs; ++i)
 			fprintf(stderr, "   %s\n", strings[i]);
 		free(strings);
 	}
@@ -60,7 +71,7 @@ format(const char *fmt, ...)
 	va_start(ap, fmt);
 	int len = vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
-	assert((size_t) len < sizeof(buf));
+	ENSURE((size_t) len < sizeof(buf));
 	return (char *) &buf;
 }
 
@@ -68,7 +79,7 @@ char *
 strrep(char c, size_t n)
 {
 	static char buf[8192];
-	assert((n + 1) < (sizeof(buf) - 1));
+	ENSURE((n + 1) < (sizeof(buf) - 1));
 	memset(buf, c, n);
 	buf[n + 1] = '\0';
 	return (char *) &buf;
@@ -87,7 +98,7 @@ struct lnklist *
 strfold(char *str, size_t width)
 {
 	struct lnklist *l = lnklist_new();
-	assert(l != NULL);
+	ENSURE(l != NULL);
 
 	char buf[8192], *p = buf, *spc = NULL;
 	memset(buf, 0x0, sizeof(buf));
@@ -140,7 +151,7 @@ _Bool
 utf8isblank(uint32_t ch)
 {
 	utf8proc_int32_t cch = (utf8proc_int32_t)ch;
-	assert(utf8proc_codepoint_valid(cch));
+	ENSURE(utf8proc_codepoint_valid(cch));
 
 	switch (utf8proc_category(cch)) {
 	case UTF8PROC_CATEGORY_ZS:

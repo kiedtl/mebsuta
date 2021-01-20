@@ -1,6 +1,5 @@
 /* See LICENSE file for license details. */
 
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <signal.h>
@@ -174,7 +173,7 @@ main(void)
 
 		if ((ret = tb_peek_event(&ev, 16)) == 0)
 			continue;
-		assert(ret != -1); /* termbox error */
+		ENSURE(ret != -1); /* termbox error */
 
 		if (tbrl_len() > 0) {
 			tbrl_handle(&ev);

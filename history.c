@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <sys/types.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -60,7 +59,7 @@ hist_contains(CURLU *url)
 void
 hist_add(struct Gemdoc *g)
 {
-	assert(g);
+	ENSURE(g);
 
 	if ((histpos+1) >= hist_len()) {
 		history[histpos] = g;

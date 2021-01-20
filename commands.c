@@ -89,7 +89,7 @@ command_run(char *buf)
 	char *argv[255], rawargs[4096], *end;
 	size_t argc = 0;
 
-	assert(buf[0] == ':');
+	ENSURE(buf[0] == ':');
 	if (strlen(++buf) == 0) return;
 
 	memset(rawargs, 0x0, sizeof(rawargs));

@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <errno.h>
 #include <netdb.h>
 #include <stdbool.h>
@@ -18,7 +17,7 @@ _Bool
 conn_init(void)
 {
 	struct tls_config *tlscfg = tls_config_new();
-	assert(tlscfg);
+	ENSURE(tlscfg);
 
 	if (tls_config_set_ciphers(tlscfg, "compat") != 0)
 		return false; /* tls_config_set_ciphers error */
@@ -27,7 +26,7 @@ conn_init(void)
 	tls_config_insecure_noverifycert(tlscfg);
 
 	client = tls_client();
-	assert(client);
+	ENSURE(client);
 
 	if (tls_configure(client, tlscfg) != 0)
 		return false; /* tls_configure error */
@@ -39,7 +38,7 @@ conn_init(void)
 _Bool
 conn_conn(char *host, char *port)
 {
-	assert(client);
+	ENSURE(client);
 
 	struct addrinfo hints = {
 		.ai_protocol = IPPROTO_TCP,
@@ -83,7 +82,7 @@ conn_active(void)
 _Bool
 conn_send(char *data)
 {
-	assert(conn_active());
+	ENSURE(conn_active());
 	size_t len = strlen(data);
 
 	while (len) {
@@ -122,7 +121,7 @@ conn_recv(char *bufsrv, size_t sz)
 _Bool
 conn_close(void)
 {
-	assert(conn_active());
+	ENSURE(conn_active());
 	tls_close(client);
 	return true;
 }
@@ -130,7 +129,7 @@ conn_close(void)
 _Bool
 conn_shutdown(void)
 {
-	assert(client);
+	ENSURE(client);
 	tls_free(client);
 	client = NULL;
 	return true;

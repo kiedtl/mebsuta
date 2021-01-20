@@ -12,6 +12,10 @@
 #define SIZEOF(ARR)  (sizeof(ARR)/sizeof(*(ARR)))
 #define BITSET(V,B)  (((V) & (B)) == (B))
 
+/* a reimplementation of assert(3) that calls die() instead of abort(3) */
+#define ENSURE(EXPR) (__ensure((EXPR), #EXPR, __FILE__, __LINE__, __func__))
+void __ensure(_Bool expr, char *str, char *file, size_t line, const char *fn);
+
 void die(const char *fmt, ...);
 char *format(const char *format, ...);
 char *strrep(char c, size_t n);
