@@ -103,7 +103,8 @@ command_run(char *buf)
 	}
 
 	for (size_t i = 0; i < SIZEOF(commands); ++i) {
-		if (strcmp(commands[i].name, argv[0])) continue;
+		if (strncmp(commands[i].name, argv[0], strlen(argv[0])))
+			continue;
 
 		if (argc < (commands[i].args+1)) {
 			ui_message(UI_WARN, "Usage: :%s %s",
