@@ -79,6 +79,7 @@ char *
 strrep(char c, size_t n)
 {
 	static char buf[8192];
+	if ((n+1)>(sizeof(buf)-1))die("n = %zu, sizeof(buf)-1=%zu", n+1, sizeof(buf)-1);
 	ENSURE((n + 1) < (sizeof(buf) - 1));
 	memset(buf, c, n);
 	buf[n + 1] = '\0';
