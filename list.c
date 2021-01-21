@@ -43,9 +43,7 @@ lnklist_tail(struct lnklist *list)
 	return tail;
 }
 
-/*
- * push item onto list.
- */
+/* push item onto list. */
 _Bool
 lnklist_push(struct lnklist *list, void *data)
 {
@@ -94,6 +92,44 @@ lnklist_pop(struct lnklist *list)
 	free(tail);
 
 	return data;
+}
+
+/* "Unhook" a node from the list and free it. */
+_Bool
+lnklist_rm(struct lnklist *node)
+{
+	/* decapitation bad */
+	if (!node || !node->prev)
+		return false;
+	if (node->next)
+		node->next->prev = node->prev;
+	node->prev->next = node->next;
+	node->next = node->prev = NULL;
+	lnklist_free(node);
+	return true;
+}
+
+/* Allocate and insert a new node after node `after' and set its
+ * data to `data'. */
+_Bool
+lnklist_insert(struct lnklist *after, void *data)
+{
+	if (!after)
+		return false;
+
+	struct lnklist *new;
+	if ((new = lnklist_new()) == NULL)
+		return false;
+
+	new->data = data;
+	new->prev = after;
+	if (after->next) {
+		new->next = after->next;
+		after->next->prev = new;
+	}
+	after->next = new;
+
+	return true;
 }
 
 /*

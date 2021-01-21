@@ -67,6 +67,8 @@ gemdoc_new(CURLU *url)
 ssize_t
 gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 {
+	ENSURE(g), ENSURE(url);
+
 	ssize_t status = 0;
 	*g = gemdoc_new(url);
 

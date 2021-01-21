@@ -4,7 +4,7 @@ command_input(size_t argc, char **argv, char *rawargs)
 	UNUSED(argc);
 	UNUSED(argv);
 
-	CURLU *c_url = curl_url_dup(CURTAB().doc->url);
+	CURLU *c_url = curl_url_dup(CURTAB()->doc->url);
 	curl_url_set(c_url, CURLUPART_QUERY, rawargs, CURLU_URLENCODE);
 
 	follow_link(c_url, 0);
@@ -47,7 +47,7 @@ command_follow(size_t argc, char **argv, char *rawargs)
 	} else {
 		char *text = NULL;
 
-		if (!gemdoc_find_link(CURTAB().doc, link, &text, &c_url)) {
+		if (!gemdoc_find_link(CURTAB()->doc, link, &text, &c_url)) {
 			ui_message(UI_STOP, "No such link '%zu'", link);
 			return;
 		}
@@ -165,7 +165,7 @@ command_complete(char *buf, size_t curs, char *completebuf)
 		}
 	} else {
 		char *urlbuf;
-		struct History *hist = &tabs[tab_cur].hist;
+		struct History *hist = &CURTAB()->hist;
 		for (size_t i = hist_len(hist) - 1; i >= 0; --i) {
 			curl_url_get(hist->visited[i]->url, CURLUPART_URL, &urlbuf, 0);
 			if (!urlbuf) continue;

@@ -1,7 +1,6 @@
 #include "history.h"
+#include "list.h"
 #include "ui.h"
-
-#define CURTAB() (tabs[tab_cur])
 
 struct Tab {
 	struct Gemdoc *doc;
@@ -13,9 +12,13 @@ struct Tab {
 	enum UiDocumentMode ui_doc_mode;
 };
 
-extern struct Tab tabs[255];
-extern size_t tab_cur;
+extern struct lnklist *tabs;
+extern struct lnklist *curtab;
 
 void tabs_init(void);
 size_t tabs_len(void);
+void tabs_add(struct lnklist *after);
+void tabs_rm(struct lnklist *tab);
 void tabs_free(void);
+
+#define CURTAB() ((struct Tab *)curtab->data)

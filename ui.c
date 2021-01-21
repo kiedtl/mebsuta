@@ -50,7 +50,7 @@ link_color(CURLU *u)
 	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
 	if (!scheme || strcmp(scheme, "gemini"))
 		color = MIRC_RED;
-	if (hist_contains(&tabs[tab_cur].hist, u) > 0)
+	if (hist_contains(&CURTAB()->hist, u) > 0)
 		color = MIRC_MAGENTA;
 	color = MIRC_BLUE;
 	free(scheme);
@@ -228,7 +228,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		break; case GEM_DATA_QUOTE:
 			return format(" > \00314%s", text);
 		break; case GEM_DATA_LINK:;
-			char attr = l->text && !BITSET(CURTAB().ui_doc_mode, UI_DOCRAWLINK)
+			char attr = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
 					? '\x0f' : '\x1f';
 			char *padding = strrep(' ', strlen(format("[%zu]", lnk)));
 			return format("%s %c\003%zu%s", padding, attr,
@@ -250,7 +250,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 	break; case GEM_DATA_QUOTE:
 		return format(" > \00314%s", text);
 	break; case GEM_DATA_LINK:;
-		char attr = l->text && !BITSET(CURTAB().ui_doc_mode, UI_DOCRAWLINK)
+		char attr = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
 				? '\x0f' : '\x1f';
 		return format("\x02[%zu]\x0f %c\003%zu%s", lnk, attr,
 				link_color(l->link_url), text);
@@ -262,19 +262,19 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 static size_t
 _ui_redraw_rendered_doc(void)
 {
-	ENSURE(CURTAB().doc != NULL);
+	ENSURE(CURTAB()->doc != NULL);
 
 	size_t line = 1;
 
 	size_t links = 0, page_height = 0;
-	ssize_t scrollctr = CURTAB().ui_vscroll;
-	for (struct lnklist *c = CURTAB().doc->document->next; c; c = c->next) {
+	ssize_t scrollctr = CURTAB()->ui_vscroll;
+	for (struct lnklist *c = CURTAB()->doc->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 		char *text = l->text;
 
 		if (l->type == GEM_DATA_LINK) {
 			++links;
-			text = l->text && !BITSET(CURTAB().ui_doc_mode, UI_DOCRAWLINK)
+			text = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
 				? l->text : l->raw_link_url;
 		}
 
@@ -285,7 +285,7 @@ _ui_redraw_rendered_doc(void)
 		for (t = folded->next; t; t = t->next, ++i) {
 			if (--scrollctr >= 0) continue;
 			char *fmt = format_elem(l, (char *) t->data, links, i);
-			tb_writeline(line, fmt, CURTAB().ui_hscroll);
+			tb_writeline(line, fmt, CURTAB()->ui_hscroll);
 			if (++line >= ui_height-3) break;
 		}
 		page_height += lnklist_len(folded);
@@ -299,10 +299,10 @@ static size_t
 _ui_redraw_raw_doc(void)
 {
 	size_t line = 1, page_height = 0;
-	ssize_t scrollctr = CURTAB().ui_vscroll;
-	for (struct lnklist *c = CURTAB().doc->rawdoc->next; c; c = c->next) {
+	ssize_t scrollctr = CURTAB()->ui_vscroll;
+	for (struct lnklist *c = CURTAB()->doc->rawdoc->next; c; c = c->next) {
 		if (--scrollctr >= 0) continue;
-		tb_writeline(line, (char *)c->data, CURTAB().ui_hscroll);
+		tb_writeline(line, (char *)c->data, CURTAB()->ui_hscroll);
 		++page_height;
 		if (++line >= ui_height-3) break;
 	}
@@ -315,11 +315,11 @@ _ui_redraw_other_doc(void)
 	struct Gemtok line = {
 		.type = GEM_DATA_HEADER1,
 		.text = strdup(format("%d %s",
-				CURTAB().doc->status, CURTAB().doc->meta))
+				CURTAB()->doc->status, CURTAB()->doc->meta))
 	};
 
 	tb_writeline(1,
-		format_elem(&line, line.text, 0, 1), CURTAB().ui_hscroll);
+		format_elem(&line, line.text, 0, 1), CURTAB()->ui_hscroll);
 
 	return 1;
 }
@@ -363,21 +363,26 @@ _ui_redraw_tabline(void)
 	strcat(linebuf, "\x16 ");
 
 	size_t l;
-	size_t fst = tab_cur;
+	struct lnklist *fst = curtab;
 
-	for (l = 0; fst > 0 && l < ui_width / 2; --fst)
-		l += strlen(format("%zu", fst)) + 3;
-	for (l = 0; fst < tabs_len() && l < ui_width; ++fst) {
-		char *p = format("%zu", fst);
-		if (fst == tab_cur)
+	for (l = 0; fst && fst->data && l < ui_width / 2; fst = fst->prev)
+		l += strlen(format("%p", fst->data)) + 3;
+
+	if (!fst->data && fst->next->data)
+		fst = fst->next;
+
+	for (l = 0; fst && l < ui_width; fst = fst->next) {
+		char *p = format("%p", fst->data);
+		if (fst == curtab)
 			strcat(linebuf, "\x16");
 		strcat(linebuf, "  "), ++l;
 		strcat(linebuf, p), l += strlen(p);
 		if (l < ui_width - 1)
 			strcat(linebuf, "  "), l += 2;
-		if (fst == tab_cur)
+		if (fst == curtab)
 			strcat(linebuf, "\x16");
 	}
+
 	strcat(linebuf, strrep(' ', ui_width - l));
 	strcat(linebuf, "\x16");
 	tb_writeline(0, linebuf, 0);
@@ -387,9 +392,9 @@ static void
 _ui_redraw_statusline(size_t page_height)
 {
 	char *url, lstatus[128], rstatus[128], *pad;
-	curl_url_get(CURTAB().doc->url, CURLUPART_URL, &url, 0);
+	curl_url_get(CURTAB()->doc->url, CURLUPART_URL, &url, 0);
 
-	strcpy(lstatus, format("%3d%%", (CURTAB().ui_vscroll * 100) / (page_height)));
+	strcpy(lstatus, format("%3d%%", (CURTAB()->ui_vscroll * 100) / (page_height)));
 	strcpy(rstatus, format("%s", url));
 	pad = strrep(' ', ui_width - strlen(lstatus) - strlen(rstatus) - 2);
 
@@ -402,14 +407,14 @@ _ui_redraw_statusline(size_t page_height)
 size_t
 ui_redraw(void)
 {
-	ENSURE(CURTAB().doc != NULL);
+	ENSURE(CURTAB()), ENSURE(CURTAB()->doc);
 	tb_clear();
 
 	_ui_redraw_tabline();
 
 	size_t page_height = 0;
-	if (CURTAB().doc->status == GEM_STATUS_SUCCESS) {
-		if (BITSET(CURTAB().ui_doc_mode, UI_DOCRAW))
+	if (CURTAB()->doc->status == GEM_STATUS_SUCCESS) {
+		if (BITSET(CURTAB()->ui_doc_mode, UI_DOCRAW))
 			page_height = _ui_redraw_raw_doc();
 		else page_height = _ui_redraw_rendered_doc();
 	} else {
@@ -448,12 +453,12 @@ ui_handle(struct tb_event *ev)
 			if (strlen(ui_messagebuf) == 0) break;
 			memset(ui_messagebuf, 0x0, sizeof(ui_messagebuf));
 		break; case TB_KEY_CTRL_U:
-			CURTAB().ui_doc_mode ^= UI_DOCRAW;
+			CURTAB()->ui_doc_mode ^= UI_DOCRAW;
 		}
 	} else if (ev->type == TB_EVENT_KEY && ev->ch) {
 		switch(ev->ch) {
 		break; case 'p':
-			CURTAB().ui_doc_mode ^= UI_DOCRAWLINK;
+			CURTAB()->ui_doc_mode ^= UI_DOCRAWLINK;
 		}
 	}
 }

@@ -86,7 +86,8 @@ void
 hist_free(struct History *h)
 {
 	for (size_t i = 0; i < MAXHISTSZ; ++i) {
-		gemdoc_free(h->visited[i]);
+		if (h->visited[i])
+			gemdoc_free(h->visited[i]);
 		h->visited[i] = NULL;
 	}
 }
