@@ -14,6 +14,7 @@
 #include "curl/url.h"
 #include "history.h"
 #include "gemini.h"
+#include "tabs.h"
 #include "tbrl.h"
 #include "termbox.h"
 #include "ui.h"
@@ -30,8 +31,6 @@ signal_fatal(int sig)
 	die("received signal %s (%d); aborting.",
 		sigstrs[sig] ? sigstrs[sig] : "???", sig);
 }
-
-static struct Gemdoc *g = NULL, *old = NULL;
 
 static ssize_t
 make_request(struct Gemdoc **g, CURLU *url, char **e)
@@ -55,10 +54,9 @@ follow_link(CURLU *url, size_t redirects)
 	 * url, which we'll free separately */
 	url = curl_url_dup(url);
 
-	g = NULL;
 	char *error;
 
-	switch (make_request(&g, url, &error)) {
+	switch (make_request(&CURTAB().doc, url, &error)) {
 	break; case -1:;
 		char *scheme;
 		curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
@@ -72,13 +70,13 @@ follow_link(CURLU *url, size_t redirects)
 	}
 
 	/* now let's check for input and redirects */
-	switch (g->type) {
+	switch (CURTAB().doc->type) {
 	break; case GEM_TYPE_INPUT:
 		tbrl_setbuf(":input ");
 	break; case GEM_TYPE_REDIRECT:;
 		CURLUcode error;
-		CURLU *rurl = curl_url_dup(g->url);
-		error = curl_url_set(rurl, CURLUPART_URL, g->meta, 0);
+		CURLU *rurl = curl_url_dup(CURTAB().doc->url);
+		error = curl_url_set(rurl, CURLUPART_URL, CURTAB().doc->meta, 0);
 		if (error) {
 			ui_message(UI_WARN, "Invalid redirect URL.");
 			goto show;
@@ -96,8 +94,25 @@ follow_link(CURLU *url, size_t redirects)
 	}
 
 show:
-	hist_add(g);
-	ui_set_gemdoc(g);
+	hist_add(&CURTAB().hist, CURTAB().doc);
+	ui_redraw();
+}
+
+static void
+newtab(CURLU *url)
+{
+	tab_cur = tabs_len();
+	make_request(&CURTAB().doc, url, NULL);
+	hist_add(&CURTAB().hist, CURTAB().doc);
+}
+
+static void
+editurl(void)
+{
+	char *urlbuf;
+	curl_url_get(CURTAB().doc->url, CURLUPART_URL, &urlbuf, 0);
+	tbrl_setbuf(format(":go %s", urlbuf));
+	free(urlbuf);
 	ui_redraw();
 }
 
@@ -106,40 +121,8 @@ show:
 int
 main(void)
 {
-	/* --- DEBUG TRASH, ignore ---
-	CURLU *u, *au = curl_url(), *bu = curl_url(), *cu = curl_url(), *du = curl_url();
-	struct Gemdoc *a, *b, *c, *d;
-
-	curl_url_set(au, CURLUPART_URL, "gemini://gemini.circumlunar.space", 0);
-	gemdoc_from_url(&a, au);
-	curl_url_set(bu, CURLUPART_URL, "gemini://tilde.team/", 0);
-	gemdoc_from_url(&b, bu);
-	curl_url_set(cu, CURLUPART_URL, "gemini://cosmic.voyage/", 0);
-	gemdoc_from_url(&c, cu);
-	curl_url_set(du, CURLUPART_URL,"gemini://gemini.ctrl-c.club", 0);
-	gemdoc_from_url(&d, du);
-
-	hist_init();
-	hist_add(a);
-	hist_add(b);
-	hist_add(c);
-	hist_back();
-	hist_back();
-	hist_add(d);
-	hist_add(a);
-	char *urll;
-	for (size_t i = 0; i < hist_len(); ++i) {
-		if (!history[i]) continue;
-		u = history[i]->url;
-		curl_url_get(u, CURLUPART_URL, &urll, 0);
-		printf("[%zu] '%s'\n", i, urll);
-	}
-	printf("done (histlen=%zu, histpos=%zu)\n", hist_len(), histpos);
-	return 0;*/
-
 	/* register signal handlers */
 	signal(SIGPIPE, SIG_IGN);
-
 	struct sigaction fatal;
 	fatal.sa_handler = &signal_fatal;
 	sigaction(SIGILL,   &fatal, NULL);
@@ -147,20 +130,19 @@ main(void)
 	sigaction(SIGFPE,   &fatal, NULL);
 	sigaction(SIGBUS,   &fatal, NULL);
 
-	CURLU *url = curl_url();
-	curl_url_set(url, CURLUPART_URL, homepage, 0);
+	CURLU *homepage_curl = curl_url();
+	curl_url_set(homepage_curl, CURLUPART_URL, homepage, 0);
+	struct Gemdoc *tmp;
 
-	make_request(&g, url, NULL);
-
-	hist_init();
-	hist_add(g);
+	tabs_init();
+	newtab(homepage_curl);
 
 	tbrl_init();
 	tbrl_complete_callback = &command_complete;
 	tbrl_enter_callback = &command_run;
 
 	ui_init();
-	ui_set_gemdoc(g);
+	ui_redraw();
 
 	/* incoming user events (key presses, window resizes,
 	 * mouse clicks, etc */
@@ -186,14 +168,24 @@ main(void)
 			break; case TB_KEY_CTRL_C:
 				quit = true;
 			break; case TB_KEY_CTRL_L:
-				ui_set_gemdoc(g);
+				editurl();
 			break; case TB_KEY_SPACE:
-				ui_vscroll += tb_height();
-				ui_redraw();
+				CURTAB().ui_vscroll += tb_height();
+			break; case TB_KEY_CTRL_T:
+				newtab(homepage_curl);
+			break; case TB_KEY_CTRL_W:
+				/* TODO */
+			break; case TB_KEY_CTRL_P:
+				if (tab_cur > 0)
+					--tab_cur;
+			break; case TB_KEY_CTRL_N:
+				if (tab_cur < tabs_len())
+					++tab_cur;
 			break; default:
 				ui_handle(&ev);
-				ui_redraw();
 			}
+
+			ui_redraw();
 		} else if (ev.type == TB_EVENT_KEY && ev.ch) {
 			switch(ev.ch) {
 			case '0': case '1': case '2': case '3': case '4':
@@ -201,68 +193,63 @@ main(void)
 				char *text = NULL;
 				CURLU *url = NULL;
 
-				if (!gemdoc_find_link(g, ev.ch - '0', &text, &url))
+				if (!gemdoc_find_link(CURTAB().doc, ev.ch - '0', &text, &url))
 					break;
 
 				follow_link(url, 0);
 			break; case 'g':
-				ui_vscroll = 0;
+				CURTAB().ui_vscroll = 0;
 				ui_redraw();
 			break; case 'G':
-				ui_vscroll = ui_redraw() - 10;
+				CURTAB().ui_vscroll = ui_redraw() - 10;
 				ui_redraw();
 			break; case 'j':
-				++ui_vscroll;
+				++CURTAB().ui_vscroll;
 				ui_redraw();
 			break; case 'k':
-				if (ui_vscroll > 0) {
-					--ui_vscroll;
+				if (CURTAB().ui_vscroll > 0) {
+					--CURTAB().ui_vscroll;
 					ui_redraw();
 				}
 			break; case 'h':
-				if (ui_hscroll > 0) {
-					--ui_hscroll;
+				if (CURTAB().ui_hscroll > 0) {
+					--CURTAB().ui_hscroll;
 					ui_redraw();
 				}
 			break; case 'l':
-				++ui_hscroll;
+				++CURTAB().ui_hscroll;
 				ui_redraw();
 			break; case 'b':
-				if (hist_len() == 0)
+				if (hist_len(&CURTAB().hist) == 0)
 					break;
-
-				old = g;
-				if (!(g = hist_back())) {
-					g = old;
+				tmp = CURTAB().doc;
+				if (!(CURTAB().doc = hist_back(&CURTAB().hist))) {
+					CURTAB().doc = tmp;
 					break;
 				}
-
-				ui_set_gemdoc(g);
+				ui_redraw();
 			break; case 'f':
-				if (hist_len() == 0)
+				if (hist_len(&CURTAB().hist) == 0)
 					break;
-
-				old = g;
-				if (!(g = hist_forw())) {
-					g = old;
+				tmp = CURTAB().doc;
+				if (!(CURTAB().doc = hist_forw(&CURTAB().hist))) {
+					CURTAB().doc = tmp;
 					break;
 				}
-
-				ui_set_gemdoc(g);
+				ui_redraw();
 			break; case 'r':
-				follow_link(g->url, 0);
+				follow_link(CURTAB().doc->url, 0);
 			break; case ':':
 				tbrl_handle(&ev);
 				ui_redraw();
 			break; case ';':
 				tbrl_setbuf(":go ");
 				ui_redraw();
-			break; case 'e':;
-				char *urlbuf;
-				curl_url_get(g->url, CURLUPART_URL, &urlbuf, 0);
-				tbrl_setbuf(format(":go %s", urlbuf));
-				free(urlbuf);
+			break; case '[':
+				tbrl_setbuf(":newgo ");
 				ui_redraw();
+			break; case 'e':
+				editurl();
 			break; default:
 				ui_handle(&ev);
 				ui_redraw();
@@ -270,7 +257,7 @@ main(void)
 		}
 	}
 
+	tabs_free();
 	ui_shutdown();
-	hist_free();
 	return 0;
 }

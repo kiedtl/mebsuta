@@ -1,6 +1,7 @@
 #ifndef UI_H
 #define UI_H
 
+#include "history.h"
 #include "gemini.h"
 #include "termbox.h"
 
@@ -10,21 +11,14 @@ enum UiMessageType {
 	UI_STOP = 3
 };
 
-extern char ui_messagebuf[255];
-extern enum UiMessageType ui_message_type;
-
-extern size_t tb_status;
-extern const size_t TB_ACTIVE, TB_MODIFIED;
-extern size_t ui_vscroll, ui_hscroll;
-extern struct Gemdoc *ui_doc;
-
 enum UiDocumentMode {
 	UI_DOCNORM    = (1<<1),
 	UI_DOCRAW     = (1<<3),
 	UI_DOCRAWLINK = (1<<2)
 };
 
-extern enum UiDocumentMode ui_doc_mode;
+extern size_t tb_status;
+extern const size_t TB_ACTIVE, TB_MODIFIED;
 
 void ui_init(void);
 void ui_present(void);

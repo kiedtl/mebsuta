@@ -9,7 +9,7 @@
 #define CLAMP(V,H,L) (MIN(MAX(V,H),L))
 #define CHKSUB(A,B)  (((A)-(B))>(A)?0:((A)-(B)))
 #define UNUSED(VAR)  ((void) (VAR))
-#define SIZEOF(ARR)  (sizeof(ARR)/sizeof(*(ARR)))
+#define SIZEOF(ARR)  ((size_t)(sizeof(ARR)/sizeof(*(ARR))))
 #define BITSET(V,B)  (((V) & (B)) == (B))
 
 /* a reimplementation of assert(3) that calls die() instead of abort(3) */

@@ -4,7 +4,7 @@ command_input(size_t argc, char **argv, char *rawargs)
 	UNUSED(argc);
 	UNUSED(argv);
 
-	CURLU *c_url = curl_url_dup(g->url);
+	CURLU *c_url = curl_url_dup(CURTAB().doc->url);
 	curl_url_set(c_url, CURLUPART_QUERY, rawargs, CURLU_URLENCODE);
 
 	follow_link(c_url, 0);
@@ -15,6 +15,12 @@ command_follow(size_t argc, char **argv, char *rawargs)
 {
 	UNUSED(argc);
 	UNUSED(rawargs);
+
+	/*
+	 * Both :go and :newgo are handled by this function.
+	 * If the command is :newgo, open the link in a new tab.
+	 */
+	_Bool opennew = !strcmp(argv[0], "newgo");
 
 	char *end = NULL;
 	size_t link = strtol(argv[1], &end, 0);
@@ -41,13 +47,16 @@ command_follow(size_t argc, char **argv, char *rawargs)
 	} else {
 		char *text = NULL;
 
-		if (!gemdoc_find_link(g, link, &text, &c_url)) {
+		if (!gemdoc_find_link(CURTAB().doc, link, &text, &c_url)) {
 			ui_message(UI_STOP, "No such link '%zu'", link);
 			return;
 		}
 	}
 
-	follow_link(c_url, 0);
+	if (opennew)
+		newtab(c_url);
+	else
+		follow_link(c_url, 0);
 
 	/* free, since follow_link takes a copy */
 	curl_url_cleanup(c_url);
@@ -77,6 +86,7 @@ struct Command {
 	char *usage;
 } commands[] = {
 	{ "go",    &command_follow, 1, "<link/url>" },
+	{ "newgo", &command_follow, 1, "<link/url>" },
 	{ "input", &command_input,  1,    "<input>" },
 	{ "wq",    &command_vimmer, 0,           "" },
 };
@@ -155,8 +165,9 @@ command_complete(char *buf, size_t curs, char *completebuf)
 		}
 	} else {
 		char *urlbuf;
-		for (size_t i = hist_len() - 1; i >= 0; --i) {
-			curl_url_get(history[i]->url, CURLUPART_URL, &urlbuf, 0);
+		struct History *hist = &tabs[tab_cur].hist;
+		for (size_t i = hist_len(hist) - 1; i >= 0; --i) {
+			curl_url_get(hist->visited[i]->url, CURLUPART_URL, &urlbuf, 0);
 			if (!urlbuf) continue;
 
 			if (!strncmp(urlbuf, wordstart, strlen(wordstart))) {
