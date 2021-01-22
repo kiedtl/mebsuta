@@ -29,7 +29,7 @@ all: $(NAME)
 
 .PHONY: run
 run: $(NAME)
-	$(CMD)$(NAME)
+	$(CMD)./$(NAME)
 
 %.o: %.c
 	@printf "    %-8s%s\n" "CC" $@
