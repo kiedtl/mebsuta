@@ -199,7 +199,7 @@ main(void)
 	struct Gemdoc *tmp;
 
 	tabs_init();
-	newtab(homepage_curl);
+	newtab(curl_url_dup(homepage_curl));
 
 	tbrl_init();
 	tbrl_complete_callback = &command_complete;
@@ -236,7 +236,7 @@ main(void)
 			break; case TB_KEY_SPACE:
 				CURTAB()->ui_vscroll += tb_height();
 			break; case TB_KEY_CTRL_T:
-				newtab(homepage_curl);
+				newtab(curl_url_dup(homepage_curl));
 			break; case TB_KEY_CTRL_W:
 				if (!curtab || tabs_len() == 1)
 					break;
@@ -317,7 +317,9 @@ main(void)
 		}
 	}
 
-	tabs_free();
 	ui_shutdown();
+	tabs_free();
+	curl_url_cleanup(homepage_curl);
+
 	return 0;
 }
