@@ -107,7 +107,7 @@ _set_title(struct Gemdoc *g)
 
 	memset(g->title, 0x0, sz);
 
-	if (_extract_title(g, g->title, sz) != 0)
+	if (_extract_title(g, g->title, sz) >= sz)
 		g->title[sz-2] = g->title[sz-3] = g->title[sz-4] = '.';
 }
 
@@ -162,49 +162,47 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 
 	if (!strncmp(line, "```", 3)) {
 		ctx->preformat_on = !ctx->preformat_on;
-		if (ctx->preformat_on) {
-			strlcpy(ctx->preformat_alt, &line[3],
-				sizeof(ctx->preformat_alt) - 1);
-		} else {
-			ctx->preformat_alt[0] = '\0';
-		}
+		memset(ctx->preformat_alt, 0x0, sizeof(ctx->preformat_alt));
+		if (ctx->preformat_on)
+			strlcpy(ctx->preformat_alt, &line[3], sizeof(ctx->preformat_alt));
 		return true;
 	}
 
 	size_t type = _line_type(ctx, &line);
 	struct Gemtok *gdl = calloc(1, sizeof(struct Gemtok));
+	ENSURE(gdl);
 
 	if (type == GEM_DATA_LINK) {
+		gdl->type = type;
+
 		char *end;
 
-		/* 1) Remove spaces after the "=>"
-		 * 2) Find the end of the URL, and copy it
-		 * 3) Remove spaces after the end of the URL
-		 * 4) Grab the URL's alt text */
+		/* 1) Remove spaces after the "=>" */
 		while (*line && isblank(*line)) ++line;
+
+		/* 2) Find the end of the URL, and copy it */
 		for (end = line; *end && !isblank(*end); ++end);
 		gdl->raw_link_url = strndup(line, end - line);
 
 		if (*end) {
+			/* 3) Remove spaces after the end of the URL */
 			for (line = ++end; *line && isblank(*line); ++line);
+
+			/* 4) Grab the URL's alt text */
 			gdl->text = strdup(end);
 		}
 
-		gdl->type = type;
+		CURLUcode c_rc;
 
-		/* add url of document, then add url of link.
-		 * this allows relative urls. */
+		/* Start with the document's URL before adding the link's URL.
+		 * This allows relative URLs to be handled properly by cURL. */
 		gdl->link_url = curl_url_dup(g->url);
-		CURLUcode c_rc = curl_url_set(gdl->link_url,
-				CURLUPART_URL, gdl->raw_link_url, 0);
+		c_rc = curl_url_set(gdl->link_url, CURLUPART_URL, gdl->raw_link_url, 0);
 
 		switch (c_rc) {
-		break; case CURLUE_OK:
+		case CURLUE_OK:
 			break; /* yey */
-		break; case CURLUE_MALFORMED_INPUT:
-			/* just.. do nothing.
-			 * FIXME: maybe we should print a warning
-			 * or something? */
+		case CURLUE_MALFORMED_INPUT:
 		default:
 			free(gdl->text);
 			free(gdl->raw_link_url);
@@ -223,7 +221,7 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 			while (*line && isblank(*line)) ++line;
 		gdl->type = type;
 		gdl->text = strdup(line);
-		lnklist_push(g->document, (void *) gdl);
+		lnklist_push(g->document, (void *)gdl);
 	}
 
 	return true;
