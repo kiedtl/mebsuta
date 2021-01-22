@@ -29,7 +29,7 @@ all: $(NAME)
 
 .PHONY: run
 run: $(NAME)
-	$(CMD)./$(NAME)
+	$(CMD)$(NAME)
 
 %.o: %.c
 	@printf "    %-8s%s\n" "CC" $@
@@ -43,4 +43,4 @@ $(NAME): $(OBJ) $(UTF8PROC)
 
 .PHONY: clean
 clean:
-	rm -f $(NAME) $(OBJ)
+	rm -rf $(NAME) $(OBJ)
