@@ -52,6 +52,56 @@ _line_type(struct Gemdoc *g, char **line)
 	return type;
 }
 
+/* Try to extract the title from a "20 text/gemini" reply by grabbing the first
+ * title/text from the page. Not perfect, but it works most of the time. */
+static size_t
+_extract_title(struct Gemdoc *g, char *buf, size_t bufsz)
+{
+	ENSURE(g), ENSURE(g->type == GEM_TYPE_SUCCESS);
+
+	struct lnklist *t;
+	struct Gemtok *tok;
+	size_t tries[] = { GEM_DATA_HEADER1, GEM_DATA_TEXT };
+
+	for (size_t try = 0; try < SIZEOF(tries); ++try) {
+		for (t = g->document->next; t; t = t->next) {
+			tok = (struct Gemtok *)t->data;
+			if (tok->type == try)
+				return strlcpy(buf, tok->text, bufsz);
+		}
+	}
+
+	return 0;
+}
+
+static void
+_set_title(struct Gemdoc *g)
+{
+	memset(g->title, 0x0, sizeof(sizeof(g->title)));
+
+	size_t r = _extract_title(g, g->title, sizeof(g->title));
+	if (r != 0) {
+		if (r >= sizeof(g->title)) {
+			g->title[sizeof(g->title)-2] = '.';
+			g->title[sizeof(g->title)-3] = '.';
+			g->title[sizeof(g->title)-4] = '.';
+		}
+	} else {
+		char *tmp;
+		CURLUcode err = curl_url_get(g->url, CURLUPART_HOST, &tmp, 0);
+		ENSURE(!err);
+
+		size_t s = strlcpy(g->title, tmp, sizeof(g->title));
+		if (s >= sizeof(g->title)) {
+			g->title[sizeof(g->title)-2] = '.';
+			g->title[sizeof(g->title)-3] = '.';
+			g->title[sizeof(g->title)-4] = '.';
+		}
+
+		free(tmp);
+	}
+}
+
 struct Gemdoc *
 gemdoc_new(CURLU *url)
 {
@@ -120,6 +170,8 @@ gemdoc_from_url(struct Gemdoc **g, CURLU *url)
 		rc -= ptr - bufsrv;
 		memmove(&bufsrv, ptr, rc);
 	};
+
+	_set_title(*g);
 
 cleanup:
 	free(scheme);

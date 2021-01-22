@@ -46,24 +46,31 @@
 #define GEM_CHARSET_UTF7    3
 #define GEM_CHARSET_ASCII   4
 
+#define MAXTITLELEN 15
+
 struct Gemtok {
 	size_t type;
 	char *text;
 	char *raw_link_url;
 	CURLU *link_url;
-};
+}
+;
 
 /* TODO: keep track of encoding, lang */
 struct Gemdoc {
 	CURLU *url;
 
 	size_t status, type;
-	char meta[(1024 - 3) + 1];
+	char meta[(1024  -  3) + 1];
+	char title[MAXTITLELEN + 1];
 
 	struct lnklist *document;
 	struct lnklist *rawdoc;
 
-	/* parser state */
+	/*
+	 * parser state
+	 * FIXME: move into separate struct
+	 */
 	_Bool __preformat_on;
 	char  __preformat_alt[128];
 	size_t __line, __links;

@@ -365,14 +365,17 @@ _ui_redraw_tabline(void)
 	size_t l;
 	struct lnklist *fst = curtab;
 
-	for (l = 0; fst && fst->data && l < ui_width / 2; fst = fst->prev)
-		l += strlen(format("%p", fst->data)) + 3;
+	for (l = 0; fst && fst->data && l < ui_width / 2; fst = fst->prev) {
+		struct Tab *t = (struct Tab *)fst->data;
+		l += strlen(format("%p", t->doc->title)) + 3;
+	}
 
 	if (!fst->data && fst->next->data)
 		fst = fst->next;
 
 	for (l = 0; fst && l < ui_width; fst = fst->next) {
-		char *p = format("%p", fst->data);
+		struct Tab *t = (struct Tab *)fst->data;
+		char *p = format("%s", t->doc->title);
 		if (fst == curtab)
 			strcat(linebuf, "\x16");
 		strcat(linebuf, "  "), ++l;
