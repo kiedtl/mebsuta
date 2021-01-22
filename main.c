@@ -21,7 +21,7 @@
 #include "util.h"
 
 static void
-signal_fatal(int sig)
+handlesig(int sig)
 {
 	static const char *sigstrs[] = {
 		[SIGILL]  = "SIGILL", [SIGSEGV] = "SIGSEGV",
@@ -124,12 +124,10 @@ main(void)
 {
 	/* register signal handlers */
 	signal(SIGPIPE, SIG_IGN);
-	struct sigaction fatal;
-	fatal.sa_handler = &signal_fatal;
-	sigaction(SIGILL,   &fatal, NULL);
-	sigaction(SIGSEGV,  &fatal, NULL);
-	sigaction(SIGFPE,   &fatal, NULL);
-	sigaction(SIGBUS,   &fatal, NULL);
+	struct sigaction hnd = { .sa_handler = &handlesig };
+	size_t sigs[] = { SIGILL, SIGSEGV, SIGFPE, SIGBUS };
+	for (size_t i = 0; i < SIZEOF(sigs); ++i)
+		sigaction(sigs[i], &hnd, NULL);
 
 	CURLU *homepage_curl = curl_url();
 	curl_url_set(homepage_curl, CURLUPART_URL, homepage, 0);
