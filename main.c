@@ -40,9 +40,10 @@ make_request(struct Gemdoc **g, CURLU *url, char **e)
 	ssize_t status = 0;
 	*g = gemdoc_new(url);
 
-	char bufsrv[4096]; /* buffer for server data */
-	size_t rc = 0; /* received */
-	ssize_t r = 0; /* return code of conn_recv */
+	char bufsrv[65536]; /* buffer for server data */
+	memset(bufsrv, 0x0, sizeof(bufsrv));
+	size_t rc = 0;      /* received */
+	ssize_t r = 0;      /* return code of conn_recv */
 	size_t max = sizeof(bufsrv) - 1;
 
 	CURLUcode err;

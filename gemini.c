@@ -232,9 +232,9 @@ gemdoc_parse_finish(struct Gemdoc_CTX *ctx, struct Gemdoc *g)
 {
 	ENSURE(ctx), ENSURE(g);
 
+	free(ctx);
 	_set_title(g);
 
-	free(ctx);
 	return true;
 }
 

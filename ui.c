@@ -230,7 +230,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		break; case GEM_DATA_LINK:;
 			char attr = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
 					? '\x0f' : '\x1f';
-			char *padding = strrep(' ', strlen(format("[%zu]", lnk)));
+			char *padding = strrep(' ', strlen(format("[%zu]", lnk))-1);
 			return format("%s %c\003%zu%s", padding, attr,
 					link_color(l->link_url), text);
 		break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
