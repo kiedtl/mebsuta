@@ -232,7 +232,7 @@ main(void)
 			break; case TB_KEY_CTRL_C:
 				quit = true;
 			break; case TB_KEY_CTRL_L:
-				editurl();
+				/* redraw */
 			break; case TB_KEY_SPACE:
 				CURTAB()->ui_vscroll += tb_height();
 			break; case TB_KEY_CTRL_T:
