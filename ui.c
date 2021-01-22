@@ -59,7 +59,7 @@ link_color(CURLU *u)
 
 const size_t attribs[] = { TB_BOLD, TB_UNDERLINE, TB_REVERSE };
 static inline void
-set_color(uint32_t *old, uint32_t *new, char *color)
+set_color(uint16_t *old, uint16_t *new, char *color)
 {
 	uint32_t col = strtol(color, NULL, 10);
 
@@ -92,7 +92,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 	int32_t charbuf = 0;
 	ssize_t runelen = 0;
 
-	uint32_t oldfg = 0, oldbg = 0;
+	uint16_t oldfg = 0, oldbg = 0;
 
 	tb_clearline(line, &c);
 
