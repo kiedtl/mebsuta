@@ -215,47 +215,32 @@ ui_present(void)
 static char *
 format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 {
-	if (folded > 1) {
-		switch (l->type) {
-		break; case GEM_DATA_HEADER1:
-			return format("  \x02%s", text);
-		break; case GEM_DATA_HEADER2:
-			return format("   \x02%s", text);
-		break; case GEM_DATA_HEADER3:
-			return format("    \x02%s", text);
-		break; case GEM_DATA_LIST:
-			return format("   %s", text);
-		break; case GEM_DATA_QUOTE:
-			return format(" > \00314%s", text);
-		break; case GEM_DATA_LINK:;
-			char attr = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
-					? '\x0f' : '\x1f';
-			char *padding = strrep(' ', strlen(format("[%zu]", lnk))-1);
-			return format("%s %c\003%zu%s", padding, attr,
-					link_color(l->link_url), text);
-		break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
-			return text;
-		}
-	}
+	char linkstyle = MIRC_RESET;
+	if (!l->text || BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK))
+		linkstyle = MIRC_UNDERLINE;
+
+	char *styles[9][2] = {
+		[GEM_DATA_HEADER1] = { "# \x02",   "  \x02"   },
+		[GEM_DATA_HEADER2] = { "## \x02",  "   \x02"  },
+		[GEM_DATA_HEADER3] = { "### \x02", "    \x02" },
+		[GEM_DATA_LIST]    = { " * ",      "   "      },
+		[GEM_DATA_QUOTE]   = { " > ",      " > "      },
+	};
 
 	switch (l->type) {
-	break; case GEM_DATA_HEADER1:
-		return format("# \x02%s", text);
-	break; case GEM_DATA_HEADER2:
-		return format("## \x02%s", text);
-	break; case GEM_DATA_HEADER3:
-		return format("### \x02%s", text);
-	break; case GEM_DATA_LIST:
-		return format(" * %s", text);
-	break; case GEM_DATA_QUOTE:
-		return format(" > \00314%s", text);
 	break; case GEM_DATA_LINK:;
-		char attr = l->text && !BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK)
-				? '\x0f' : '\x1f';
-		return format("\x02[%zu]\x0f %c\003%zu%s", lnk, attr,
+		char prefix[32] = { '\0' };
+		strcpy(prefix, format("%c[%zu]%c", MIRC_BOLD, lnk, MIRC_RESET));
+
+		if (folded > 1)
+			strcpy(prefix, strrep(' ', strlen(format("[%zu]", lnk))-1));
+
+		return format("%s %c%c%zu%s", &prefix, linkstyle, MIRC_COLOR,
 				link_color(l->link_url), text);
-	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT: default:
+	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT:
 		return text;
+	break; default:
+		return format("%s%s", styles[l->type][folded > 1], text);
 	}
 }
 
@@ -401,8 +386,7 @@ _ui_redraw_statusline(size_t page_height)
 	strcpy(rstatus, format("%s", url));
 	pad = strrep(' ', ui_width - strlen(lstatus) - strlen(rstatus) - 2);
 
-	tb_writeline(ui_height-2, format("\x16 %s%s%s ",
-				lstatus, pad, rstatus), 0);
+	tb_writeline(ui_height-2, format("\x16 %s%s%s ", lstatus, pad, rstatus), 0);
 
 	free(url);
 }
@@ -416,11 +400,16 @@ ui_redraw(void)
 	_ui_redraw_tabline();
 
 	size_t page_height = 0;
-	if (CURTAB()->doc->status == GEM_STATUS_SUCCESS) {
+
+	switch (CURTAB()->doc->type) {
+	break; case GEM_TYPE_SUCCESS:
 		if (BITSET(CURTAB()->ui_doc_mode, UI_DOCRAW))
 			page_height = _ui_redraw_raw_doc();
-		else page_height = _ui_redraw_rendered_doc();
-	} else {
+		else
+			page_height = _ui_redraw_rendered_doc();
+	break; case 0:
+		/* do nothing */
+	break; default:
 		page_height = _ui_redraw_other_doc();
 	}
 
