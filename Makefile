@@ -35,7 +35,8 @@ run: $(NAME)
 	@printf "    %-8s%s\n" "CC" $@
 	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
 
-main.o: commands.c
+main.o: commands.c config.h
+ui.o:   config.h
 
 $(NAME): $(OBJ) $(UTF8PROC)
 	@printf "    %-8s%s\n" "CCLD" $@

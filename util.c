@@ -95,6 +95,14 @@ stroverlap(const char *a, const char *b)
 	return i;
 }
 
+char *
+eat(char *s, int (*p)(int))
+{
+	while (*s && p(*s))
+		++s;
+	return s;
+}
+
 struct lnklist *
 strfold(char *str, size_t width)
 {

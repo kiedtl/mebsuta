@@ -6,6 +6,7 @@
 #include <time.h>
 #include <utf8proc.h>
 
+#include "config.h"
 #include "curl/url.h"
 #include "gemini.h"
 #include "history.h"
@@ -107,9 +108,9 @@ tb_writeline(size_t line, char *string, size_t skip)
 		break; case MIRC_RESET:     ++string; c.fg = 15, c.bg = 0;
 		break; case MIRC_ITALIC:    ++string; break;
 		break; case MIRC_BLINK:     ++string; break;
-		break; case MIRC_COLOR:
+		break; case MIRC_COLOR:;
+			char *end;
 			++string;
-			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
 
 			/* if no digits after MIRC_COLOR, reset */
 			if (!isdigit(*string)) {
@@ -117,27 +118,19 @@ tb_writeline(size_t line, char *string, size_t skip)
 				break;
 			}
 
-			colorbuf[0] = *string;
-			if (isdigit(string[1])) colorbuf[1] = *(++string);
-			set_color(&oldfg, &c.fg, (char *) &colorbuf);
-
-			++string;
+			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
+			end = eat(string, isdigit);
+			strncpy(colorbuf, string, end - string), string = end;
+			set_color(&oldfg, &c.fg, (char *)&colorbuf);
 
 			/* bg color may or may not be present */
 			if (*string != ',' || !isdigit(string[1]))
 				break;
 
-			colorbuf[0] = *(++string);
-			if (isdigit(string[1])) colorbuf[1] = *(++string);
-			set_color(&oldbg, &c.bg, (char *) &colorbuf);
-
-			string += 2;
-		break; case MIRC_256COLOR:
-			++string;
 			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
-			strncpy((char *) &colorbuf, string, 3);
-			set_color(&oldfg, &c.fg, (char *) &colorbuf);
-			string += 3;
+			end = eat(++string, isdigit);
+			strncpy(colorbuf, string, end - string), string = end;
+			set_color(&oldbg, &c.bg, (char *)&colorbuf);
 		break; default:
 			charbuf = 0;
 			runelen = utf8proc_iterate((const unsigned char *) string,
@@ -345,7 +338,7 @@ _ui_redraw_tabline(void)
 	char linebuf[ui_width + 1];
 	memset(linebuf, 0x0, sizeof(linebuf));
 
-	strcat(linebuf, "\x16 ");
+	strcat(linebuf, "\0030,252 ");
 
 	size_t l;
 	struct lnklist *fst = curtab;
@@ -362,31 +355,27 @@ _ui_redraw_tabline(void)
 		struct Tab *t = (struct Tab *)fst->data;
 		char *p = format("%s", t->doc->title);
 		if (fst == curtab)
-			strcat(linebuf, "\x16");
+			strcat(linebuf, "\0030,1");
 		strcat(linebuf, "  "), ++l;
 		strcat(linebuf, p), l += strlen(p);
 		if (l < ui_width - 1)
 			strcat(linebuf, "  "), l += 2;
 		if (fst == curtab)
-			strcat(linebuf, "\x16");
+			strcat(linebuf, "\0030,252");
 	}
 
 	strcat(linebuf, strrep(' ', ui_width - l));
-	strcat(linebuf, "\x16");
 	tb_writeline(0, linebuf, 0);
 }
 
 static void
 _ui_redraw_statusline(size_t page_height)
 {
-	char *url, lstatus[128], rstatus[128], *pad;
+	size_t read = (CURTAB()->ui_vscroll * 100) / (page_height);
+	char *url;
 	curl_url_get(CURTAB()->doc->url, CURLUPART_URL, &url, 0);
 
-	strcpy(lstatus, format("%3d%%", (CURTAB()->ui_vscroll * 100) / (page_height)));
-	strcpy(rstatus, format("%s", url));
-	pad = strrep(' ', ui_width - strlen(lstatus) - strlen(rstatus) - 2);
-
-	tb_writeline(ui_height-2, format("\x16 %s%s%s ", lstatus, pad, rstatus), 0);
+	tb_writeline(ui_height-2, statusline(ui_width, read, url), 0);
 
 	free(url);
 }
