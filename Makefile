@@ -44,7 +44,3 @@ $(NAME): $(OBJ) $(UTF8PROC)
 .PHONY: clean
 clean:
 	rm -f $(NAME) $(OBJ)
-
-.PHONY: deepclean
-deepclean: clean
-	rm -f $(TBLIB) $(TBOBJ)
