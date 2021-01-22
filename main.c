@@ -36,16 +36,80 @@ static ssize_t
 make_request(struct Gemdoc **g, CURLU *url, char **e)
 {
 	ENSURE(g), ENSURE(url);
+
+	ssize_t status = 0;
+	*g = gemdoc_new(url);
+
+	char bufsrv[4096]; /* buffer for server data */
+	size_t rc = 0; /* received */
+	ssize_t r = 0; /* return code of conn_recv */
+	size_t max = sizeof(bufsrv) - 1;
+
+	CURLUcode err;
+	char *scheme, *host, *port, *clurl;
+
+	/* wait, did you say gopher? */
+	err = curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
+	if (err || strcmp(scheme, "gemini")) return -1;
+
 	conn_init();
-	ssize_t r = gemdoc_from_url(g, url);
-	if (r != 0 && e != NULL) {
+	err = curl_url_get(url, CURLUPART_HOST, &host, 0);
+	err = curl_url_get(url, CURLUPART_PORT, &port, 0);
+	err = curl_url_get(url, CURLUPART_URL, &clurl, 0);
+
+	if (!conn_conn(host, port ? port : "1965")) {
+		status = -2;
+		goto cleanup;
+	}
+
+	if (!conn_send(format("%s\r\n", clurl))) {
+		status = -3;
+		goto cleanup;
+	}
+
+	gemdoc_ctx_t *ctx = gemdoc_parse_init();
+
+	while ((r = conn_recv(bufsrv, max - 1 - rc)) != -1) {
+		if (r == -2) {
+			status = -4;
+			goto cleanup;
+		} else if (r == 0)
+			continue;
+
+		rc += r;
+		char *end, *ptr = (char *) &bufsrv;
+
+		while ((end = memchr(ptr, '\n', &bufsrv[rc] - ptr))) {
+			*end = '\0';
+			if (!gemdoc_parse(ctx, *g, ptr)) {
+				status = -5;
+				goto cleanup;
+			}
+			ptr = end + 1;
+		}
+
+		rc -= ptr - bufsrv;
+		memmove(&bufsrv, ptr, rc);
+	};
+
+	gemdoc_parse_finish(ctx, *g);
+
+cleanup:
+	free(scheme);
+	free(host);
+	free(port);
+	free(clurl);
+
+	if (status != 0 && e != NULL) {
 		*e = (char *)tls_error(client);
 		if (*e) *e = strdup(*e);
 		else *e = strdup(strerror(errno));
 	}
+
 	if (conn_active()) conn_close();
 	conn_shutdown();
-	return r;
+
+	return status;
 }
 
 static void

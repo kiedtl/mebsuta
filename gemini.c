@@ -14,21 +14,42 @@
 #include "strlcpy.h"
 #include "util.h"
 
-static size_t markersz[] = {
-	[GEM_DATA_HEADER3]   = 3,
-	[GEM_DATA_HEADER2]   = 2,
-	[GEM_DATA_HEADER1]   = 1,
-	[GEM_DATA_QUOTE]     = 1,
-	[GEM_DATA_LINK]      = 2,
-	[GEM_DATA_LIST]      = 2,
-	[GEM_DATA_TEXT]      = 0,
-	[GEM_DATA_PREFORMAT] = 0,
+/* parser state */
+struct Gemdoc_CTX {
+	_Bool preformat_on;
+	char  preformat_alt[128];
+	size_t line, links;
 };
 
-static size_t
-_line_type(struct Gemdoc *g, char **line)
+static _Bool
+_parse_responseline(struct Gemdoc *g, char *line)
 {
-	if (g->__preformat_on)
+	if (!isdigit(line[0]))
+		return false;
+
+	g->type = line[0] - '0';
+	g->status = (g->type*10) + (line[1]-'0');
+
+	strlcpy(g->meta, &line[3], sizeof(g->meta));
+
+	return true;
+}
+
+static size_t
+_line_type(struct Gemdoc_CTX *ctx, char **line)
+{
+	static size_t markersz[] = {
+		[GEM_DATA_HEADER3]   = 3,
+		[GEM_DATA_HEADER2]   = 2,
+		[GEM_DATA_HEADER1]   = 1,
+		[GEM_DATA_QUOTE]     = 1,
+		[GEM_DATA_LINK]      = 2,
+		[GEM_DATA_LIST]      = 2,
+		[GEM_DATA_TEXT]      = 0,
+		[GEM_DATA_PREFORMAT] = 0,
+	};
+
+	if (ctx->preformat_on)
 		return GEM_DATA_PREFORMAT;
 
 	size_t type;
@@ -71,121 +92,55 @@ _extract_title(struct Gemdoc *g, char *buf, size_t bufsz)
 		}
 	}
 
-	return 0;
+	char *tmp;
+	ENSURE(!curl_url_get(g->url, CURLUPART_HOST, &tmp, 0));
+	size_t s = strlcpy(g->title, tmp, sizeof(g->title));
+	free(tmp);
+
+	return s;
 }
 
 static void
 _set_title(struct Gemdoc *g)
 {
-	memset(g->title, 0x0, sizeof(sizeof(g->title)));
+	size_t sz = sizeof(g->title);
 
-	size_t r = _extract_title(g, g->title, sizeof(g->title));
-	if (r != 0) {
-		if (r >= sizeof(g->title)) {
-			g->title[sizeof(g->title)-2] = '.';
-			g->title[sizeof(g->title)-3] = '.';
-			g->title[sizeof(g->title)-4] = '.';
-		}
-	} else {
-		char *tmp;
-		CURLUcode err = curl_url_get(g->url, CURLUPART_HOST, &tmp, 0);
-		ENSURE(!err);
+	memset(g->title, 0x0, sz);
 
-		size_t s = strlcpy(g->title, tmp, sizeof(g->title));
-		if (s >= sizeof(g->title)) {
-			g->title[sizeof(g->title)-2] = '.';
-			g->title[sizeof(g->title)-3] = '.';
-			g->title[sizeof(g->title)-4] = '.';
-		}
-
-		free(tmp);
-	}
+	if (_extract_title(g, g->title, sz) != 0)
+		g->title[sz-2] = g->title[sz-3] = g->title[sz-4] = '.';
 }
 
 struct Gemdoc *
 gemdoc_new(CURLU *url)
 {
 	struct Gemdoc *g = calloc(1, sizeof(struct Gemdoc));
-
+	ENSURE(g);
 	g->url = url;
-	g->document = lnklist_new(), g->rawdoc = lnklist_new();
-	g->__line = g->__links = g->__preformat_on = 0;
+	g->document = lnklist_new();
+	g->rawdoc = lnklist_new();
 
 	return g;
 }
 
-ssize_t
-gemdoc_from_url(struct Gemdoc **g, CURLU *url)
+struct Gemdoc_CTX *
+gemdoc_parse_init(void)
 {
-	ENSURE(g), ENSURE(url);
+	struct Gemdoc_CTX *c = calloc(1, sizeof(struct Gemdoc_CTX));
+	ENSURE(c);
 
-	ssize_t status = 0;
-	*g = gemdoc_new(url);
+	c->preformat_on = false;
+	memset(c->preformat_alt, 0x0, sizeof(c->preformat_alt));
+	c->line = c->links = 0;
 
-	char bufsrv[4096]; /* buffer for server data */
-	size_t rc = 0; /* received */
-	ssize_t r = 0; /* return code of conn_recv */
-	size_t max = sizeof(bufsrv) - 1;
-
-	CURLUcode c_rc;
-	char *scheme, *host, *port, *clurl;
-
-	/* wait, did you say gopher? */
-	c_rc = curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
-	if (c_rc || strcmp(scheme, "gemini")) return -1;
-
-	c_rc = curl_url_get(url, CURLUPART_HOST, &host, 0);
-	c_rc = curl_url_get(url, CURLUPART_PORT, &port, 0);
-	c_rc = curl_url_get(url, CURLUPART_URL, &clurl, 0);
-
-	if (!conn_conn(host, port ? port : "1965")) {
-		status = -2;
-		goto cleanup;
-	}
-
-	if (!conn_send(format("%s\r\n", clurl))) {
-		status = -3;
-		goto cleanup;
-	}
-
-	while ((r = conn_recv(bufsrv, max - 1 - rc)) != -1) {
-		if (r == -2) {
-			status = -4;
-			goto cleanup;
-		} else if (r == 0)
-			continue;
-
-		rc += r;
-		char *end, *ptr = (char *) &bufsrv;
-
-		while ((end = memchr(ptr, '\n', &bufsrv[rc] - ptr))) {
-			*end = '\0';
-			if (!gemdoc_parse(*g, ptr)) {
-				status = -5;
-				goto cleanup;
-			}
-			ptr = end + 1;
-		}
-
-		rc -= ptr - bufsrv;
-		memmove(&bufsrv, ptr, rc);
-	};
-
-	_set_title(*g);
-
-cleanup:
-	free(scheme);
-	free(host);
-	free(port);
-	free(clurl);
-	return status;
+	return c;
 }
 
 _Bool
-gemdoc_parse(struct Gemdoc *g, char *line)
+gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 {
-	/* store a pointer to the beginning of the line...
-	 * just in case */
+	/* store a pointer to the beginning of the line, just in case we
+	 * need to back up and restore the line after moving the ptr forward */
 	char *begin = line;
 
 	/* remove trailing \r, if any */
@@ -193,33 +148,30 @@ gemdoc_parse(struct Gemdoc *g, char *line)
 	if ((cr = strchr(line, '\r')))
 		*cr = '\0';
 
-	++g->__line;
+	++ctx->line;
 	lnklist_push(g->rawdoc, strdup(line));
 
-	if (g->__line == 1) {
-		if (line[0] > '9' || line[0] < '0')
-			return false;
-		g->type = line[0] - '0';
-		g->status = (g->type * 10) + (line[1] - '0');
-		strlcpy(g->meta, &line[3], sizeof(g->meta) - 1);
-		return true;
-	} else if (g->__line == 2 && strlen(line) == 0) {
+	if (ctx->line == 1) {
+		/* We're on the first line. Parse the status code and
+		 * the meta text and bail out. */
+		return _parse_responseline(g, line);
+	} else if (ctx->line == 2 && strlen(line) == 0) {
 		/* ignore blank line after response code */
 		return true;
 	}
 
 	if (!strncmp(line, "```", 3)) {
-		g->__preformat_on = !g->__preformat_on;
-		if (g->__preformat_on) {
-			strlcpy(g->__preformat_alt, &line[3],
-				sizeof(g->__preformat_alt) - 1);
+		ctx->preformat_on = !ctx->preformat_on;
+		if (ctx->preformat_on) {
+			strlcpy(ctx->preformat_alt, &line[3],
+				sizeof(ctx->preformat_alt) - 1);
 		} else {
-			g->__preformat_alt[0] = '\0';
+			ctx->preformat_alt[0] = '\0';
 		}
 		return true;
 	}
 
-	size_t type = _line_type(g, &line);
+	size_t type = _line_type(ctx, &line);
 	struct Gemtok *gdl = calloc(1, sizeof(struct Gemtok));
 
 	if (type == GEM_DATA_LINK) {
@@ -274,6 +226,17 @@ gemdoc_parse(struct Gemdoc *g, char *line)
 		lnklist_push(g->document, (void *) gdl);
 	}
 
+	return true;
+}
+
+_Bool
+gemdoc_parse_finish(struct Gemdoc_CTX *ctx, struct Gemdoc *g)
+{
+	ENSURE(ctx), ENSURE(g);
+
+	_set_title(g);
+
+	free(ctx);
 	return true;
 }
 

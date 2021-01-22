@@ -66,19 +66,14 @@ struct Gemdoc {
 
 	struct lnklist *document;
 	struct lnklist *rawdoc;
-
-	/*
-	 * parser state
-	 * FIXME: move into separate struct
-	 */
-	_Bool __preformat_on;
-	char  __preformat_alt[128];
-	size_t __line, __links;
 };
 
+typedef struct Gemdoc_CTX gemdoc_ctx_t;
+
 struct Gemdoc *gemdoc_new(CURLU *url);
-ssize_t gemdoc_from_url(struct Gemdoc **g, CURLU *url);
-_Bool gemdoc_parse(struct Gemdoc *g, char *line);
+struct Gemdoc_CTX *gemdoc_parse_init(void);
+_Bool gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line);
+_Bool gemdoc_parse_finish(struct Gemdoc_CTX *ctx, struct Gemdoc *g);
 _Bool gemdoc_find_link(struct Gemdoc *g, size_t n, char **text, CURLU **url);
 _Bool gemdoc_free(struct Gemdoc *g);
 
