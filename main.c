@@ -206,26 +206,18 @@ main(void)
 				follow_link(url, 0);
 			break; case 'g':
 				CURTAB()->ui_vscroll = 0;
-				ui_redraw();
 			break; case 'G':
 				CURTAB()->ui_vscroll = ui_redraw() - 10;
-				ui_redraw();
 			break; case 'j':
 				++CURTAB()->ui_vscroll;
-				ui_redraw();
 			break; case 'k':
-				if (CURTAB()->ui_vscroll > 0) {
+				if (CURTAB()->ui_vscroll > 0)
 					--CURTAB()->ui_vscroll;
-					ui_redraw();
-				}
 			break; case 'h':
-				if (CURTAB()->ui_hscroll > 0) {
+				if (CURTAB()->ui_hscroll > 0)
 					--CURTAB()->ui_hscroll;
-					ui_redraw();
-				}
 			break; case 'l':
 				++CURTAB()->ui_hscroll;
-				ui_redraw();
 			break; case 'b':
 				if (hist_len(&CURTAB()->hist) == 0)
 					break;
@@ -234,7 +226,6 @@ main(void)
 					CURTAB()->doc = tmp;
 					break;
 				}
-				ui_redraw();
 			break; case 'f':
 				if (hist_len(&CURTAB()->hist) == 0)
 					break;
@@ -243,24 +234,21 @@ main(void)
 					CURTAB()->doc = tmp;
 					break;
 				}
-				ui_redraw();
 			break; case 'r':
 				follow_link(CURTAB()->doc->url, 0);
 			break; case ':':
 				tbrl_handle(&ev);
-				ui_redraw();
 			break; case ';':
 				tbrl_setbuf(":go ");
-				ui_redraw();
 			break; case '[':
 				tbrl_setbuf(":newgo ");
-				ui_redraw();
 			break; case 'e':
 				editurl();
 			break; default:
 				ui_handle(&ev);
-				ui_redraw();
 			}
+
+			ui_redraw();
 		}
 	}
 
