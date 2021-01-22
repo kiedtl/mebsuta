@@ -101,8 +101,8 @@ strfold(char *str, size_t width)
 	struct lnklist *l = lnklist_new();
 	ENSURE(l != NULL);
 
-	char buf[8192], *p = buf, *spc = NULL;
-	memset(buf, 0x0, sizeof(buf));
+	char linebuf[8192], *p = linebuf, *spc = NULL;
+	memset(linebuf, 0x0, sizeof(linebuf));
 
 	if (width == strlen(str)) {
 		lnklist_push(l, strdup(str));
@@ -111,10 +111,9 @@ strfold(char *str, size_t width)
 
 	while (*str) {
 		/* we're over width... */
-		if ((size_t)(p - buf) >= width) {
-			/* go back to the last space, and erase
-			 * anything after it. reset our position to
-			 * that space. */
+		if ((size_t)(p - linebuf) >= width) {
+			/* go back to the last space, and erase anything
+			 * after it. reset our position to to that space. */
 			if (spc) {
 				size_t i = p - spc;
 				str -= i, p = spc, spc = NULL;
@@ -122,16 +121,15 @@ strfold(char *str, size_t width)
 			}
 
 			/* add a new line */
-			lnklist_push(l, strdup(buf));
-			memset(buf, 0x0, sizeof(buf));
-			p = buf;
+			lnklist_push(l, strdup(linebuf));
+			memset(linebuf, 0x0, sizeof(linebuf));
+			p = linebuf;
 		}
 
-		/* we've found some whitespace.
-		 * if we're at the beginning of the line, we should
-		 * ignore it; otherwise, save it. */
+		/* we've found some whitespace. If we're at the
+		 * beginning of the line, ignore it; otherwise, save it. */
 		if (isblank(*str)) {
-			if ((p - buf) == 0) {
+			if ((p - linebuf) == 0) {
 				++str;
 				continue;
 			}
@@ -144,7 +142,7 @@ strfold(char *str, size_t width)
 	}
 
 	/* push the last line */
-	lnklist_push(l, strdup(buf));
+	lnklist_push(l, strdup(linebuf));
 	return l;
 }
 
