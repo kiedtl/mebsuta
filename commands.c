@@ -112,6 +112,13 @@ command_launch(size_t argc, char **argv, char *rawargs)
 	}
 }
 
+static void
+command_vers(size_t argc, char **argv, char *rawargs)
+{
+	UNUSED(argc), UNUSED(argv), UNUSED(rawargs);
+	ui_message(UI_INFO, "mebsuta v"VERSION);
+}
+
 typedef void(*command_func_t)(size_t argc, char **argv, char *rawargs);
 
 struct Command {
@@ -120,11 +127,12 @@ struct Command {
 	size_t args;
 	char *usage;
 } commands[] = {
-	{ "go",     &command_follow, 1,   "<link/url>" },
-	{ "newgo",  &command_follow, 1,   "<link/url>" },
-	{ "input",  &command_input,  1,      "<input>" },
-	{ "wq",     &command_vimmer, 0,             "" },
-	{ "launch", &command_launch, 1, "<magic-word>" },
+	{ "go",      &command_follow, 1,   "<link/url>" },
+	{ "newgo",   &command_follow, 1,   "<link/url>" },
+	{ "input",   &command_input,  1,      "<input>" },
+	{ "wq",      &command_vimmer, 0,             "" },
+	{ "launch",  &command_launch, 1, "<magic-word>" },
+	{ "version", &command_vers,   0,             "" },
 };
 
 /* TODO: use uint32_t instead of char for strings, and leverage

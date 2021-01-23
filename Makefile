@@ -15,7 +15,7 @@ WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes 
 	   -Wmissing-include-dirs -Wno-format-nonliteral -Wunused-parameter \
 	   -Wincompatible-pointer-types
 
-DEF      = -D_XOPEN_SOURCE=1000 -D_DEFAULT_SOURCE
+DEF      = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=1000 -D_DEFAULT_SOURCE
 INCL     = -I ~/local/include -Ithird_party/ -Ithird_party/termbox/src
 CC       = clang
 CFLAGS   = -Og -g $(DEF) $(INCL) $(WARNING) -funsigned-char
