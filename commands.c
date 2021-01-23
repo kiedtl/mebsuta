@@ -77,6 +77,41 @@ command_vimmer(size_t argc, char **argv, char *rawargs)
 	follow_link(c_url, 0);
 }
 
+/*
+ * Crack this eggshell if you can.
+ *
+ * -- kiedtl
+ */
+static void
+command_launch(size_t argc, char **argv, char *rawargs)
+{
+	UNUSED(argc), UNUSED(rawargs);
+
+	uint64_t z = 0;
+	for (size_t i = 0; argv[1][i]; ++i) {
+		z = (z ^ argv[1][i]) * 0x5be7413b;
+		z ^= z >> 15;
+	}
+	z += z << 3, z ^= z >> 23, z += z << 15;
+
+	switch (z & 0xFFFFFF) {
+	break; case 0xB12CAB:;
+		char *a = " \0\0\0\0\0R\3\2\36\13\27\32\12\7J", b[17];
+		for (size_t i = 0; i < sizeof(b); ++i)
+			b[i] = a[i] ^ argv[1][i % strlen(argv[1])];
+		b[16] = '\0';
+		ui_message(UI_INFO, "%s", (char *)&b);
+	break; case 0x14BD34:;
+		char *c = "\32&% ,-6,=*-#i%#8%7be'6)(-bk", d[28];
+		for (size_t i = 0; i < sizeof(d); ++i)
+			d[i] = c[i] ^ argv[1][i % strlen(argv[1])];
+		d[27] = '\0';
+		die("%s", (char *)&d);
+	break; default:
+		ui_message(UI_INFO, "I don't know what that is.", argv[1]);
+	}
+}
+
 typedef void(*command_func_t)(size_t argc, char **argv, char *rawargs);
 
 struct Command {
@@ -85,10 +120,11 @@ struct Command {
 	size_t args;
 	char *usage;
 } commands[] = {
-	{ "go",    &command_follow, 1, "<link/url>" },
-	{ "newgo", &command_follow, 1, "<link/url>" },
-	{ "input", &command_input,  1,    "<input>" },
-	{ "wq",    &command_vimmer, 0,           "" },
+	{ "go",     &command_follow, 1,   "<link/url>" },
+	{ "newgo",  &command_follow, 1,   "<link/url>" },
+	{ "input",  &command_input,  1,      "<input>" },
+	{ "wq",     &command_vimmer, 0,             "" },
+	{ "launch", &command_launch, 1, "<magic-word>" },
 };
 
 /* TODO: use uint32_t instead of char for strings, and leverage
