@@ -11,6 +11,15 @@
 #include "util.h"
 #include "list.h"
 
+void *
+ecalloc(size_t nmemb, size_t size)
+{
+	void *m;
+	if (!(m = calloc(nmemb, size)))
+		die("Could not allocate %zu bytes:", nmemb * size);
+	return m;
+}
+
 void
 __ensure(_Bool expr, char *str, char *file, size_t line, const char *fn)
 {

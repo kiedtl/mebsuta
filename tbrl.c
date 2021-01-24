@@ -18,7 +18,7 @@ static void
 tbrl_reset(void)
 {
 	tbrl_cursor = 0;
-	memset(tbrl_buf, 0x0, TBRL_BUFSIZE);
+	memset(tbrl_buf, 0x0, sizeof(tbrl_buf));
 }
 
 void
@@ -94,8 +94,9 @@ tbrl_handle(struct tb_event *ev)
 		ENSURE(ev->ch != '\0');
 
 		/* only show hints if the cursor is at the end */
-		memset(tbrl_hint, 0x0, TBRL_BUFSIZE);
-		if (tbrl_cursor == (tbrl_len() - 1) && tbrl_complete_callback) {
+		memset(tbrl_hint, 0x0, sizeof(tbrl_hint));
+
+		if (tbrl_cursor == tbrl_len() && tbrl_complete_callback) {
 			char chbuf[TBRL_BUFSIZE*6];
 			utf8encode(tbrl_buf, tbrl_len(), chbuf, SIZEOF(chbuf));
 			(tbrl_complete_callback)(chbuf, tbrl_cursor, tbrl_hint);

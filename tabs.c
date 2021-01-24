@@ -26,7 +26,7 @@ tabs_len(void)
 void
 tabs_add(struct lnklist *after)
 {
-	struct Tab *t = calloc(1, sizeof(struct Tab));
+	struct Tab *t = ecalloc(1, sizeof(struct Tab));
 	ENSURE(t);
 	hist_init(&t->hist);
 	ENSURE(lnklist_insert(after, (void *)t));

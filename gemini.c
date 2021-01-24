@@ -114,7 +114,7 @@ _set_title(struct Gemdoc *g)
 struct Gemdoc *
 gemdoc_new(CURLU *url)
 {
-	struct Gemdoc *g = calloc(1, sizeof(struct Gemdoc));
+	struct Gemdoc *g = ecalloc(1, sizeof(struct Gemdoc));
 	ENSURE(g);
 	g->url = url;
 	g->document = lnklist_new();
@@ -126,7 +126,7 @@ gemdoc_new(CURLU *url)
 struct Gemdoc_CTX *
 gemdoc_parse_init(void)
 {
-	struct Gemdoc_CTX *c = calloc(1, sizeof(struct Gemdoc_CTX));
+	struct Gemdoc_CTX *c = ecalloc(1, sizeof(struct Gemdoc_CTX));
 	ENSURE(c);
 
 	c->preformat_on = false;
@@ -169,7 +169,7 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 	}
 
 	size_t type = _line_type(ctx, &line);
-	struct Gemtok *gdl = calloc(1, sizeof(struct Gemtok));
+	struct Gemtok *gdl = ecalloc(1, sizeof(struct Gemtok));
 	ENSURE(gdl);
 
 	if (type == GEM_DATA_LINK) {

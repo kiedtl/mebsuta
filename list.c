@@ -11,7 +11,7 @@
 struct lnklist *
 lnklist_new(void)
 {
-	struct lnklist *new = calloc(1, sizeof(struct lnklist));
+	struct lnklist *new = ecalloc(1, sizeof(struct lnklist));
 	if (new == NULL) return NULL;
 	new->prev = new->next = new->data = NULL;
 	return new;

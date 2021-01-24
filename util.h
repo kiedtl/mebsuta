@@ -12,6 +12,8 @@
 #define SIZEOF(ARR)  ((size_t)(sizeof(ARR)/sizeof(*(ARR))))
 #define BITSET(V,B)  (((V) & (B)) == (B))
 
+void *ecalloc(size_t nmemb, size_t size);
+
 /* a reimplementation of assert(3) that calls die() instead of abort(3) */
 #define ENSURE(EXPR) (__ensure((EXPR), #EXPR, __FILE__, __LINE__, __func__))
 void __ensure(_Bool expr, char *str, char *file, size_t line, const char *fn);

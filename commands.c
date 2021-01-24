@@ -210,7 +210,7 @@ command_complete(char *buf, size_t curs, char *completebuf)
 	} else {
 		char *urlbuf;
 		struct History *hist = &CURTAB()->hist;
-		for (size_t i = hist_len(hist) - 1; i >= 0; --i) {
+		for (size_t i = hist_len(hist) - 1; i > 0; --i) {
 			curl_url_get(hist->visited[i]->url, CURLUPART_URL, &urlbuf, 0);
 			if (!urlbuf) continue;
 

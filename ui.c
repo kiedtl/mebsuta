@@ -312,6 +312,8 @@ _ui_redraw_inputline(void)
 		for (size_t i = CHKSUB(len+1, ui_width); i < len; ++i, ++x) {
 			tb_change_cell(x, ui_height-1, tbrl_buf[i], 0, 0);
 		}
+		//if (tbrl_len() > 3)
+			//die("%s\n", tbrl_hint);
 		for (size_t i = 0; i < strlen(tbrl_hint); ++i, ++x) {
 			tb_change_cell(x, ui_height-1, tbrl_hint[i], 8, 0);
 		}
