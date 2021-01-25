@@ -105,10 +105,10 @@ stroverlap(const char *a, const char *b)
 }
 
 char *
-eat(char *s, int (*p)(int))
+eat(char *s, int (*p)(int), size_t max)
 {
-	while (*s && p(*s))
-		++s;
+	while (*s && p(*s) && max > 0)
+		++s, --max;
 	return s;
 }
 

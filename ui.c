@@ -119,7 +119,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 			}
 
 			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
-			end = eat(string, isdigit);
+			end = eat(string, isdigit, 3);
 			strncpy(colorbuf, string, end - string), string = end;
 			set_color(&oldfg, &c.fg, (char *)&colorbuf);
 
@@ -128,7 +128,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 				break;
 
 			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
-			end = eat(++string, isdigit);
+			end = eat(++string, isdigit, 3);
 			strncpy(colorbuf, string, end - string), string = end;
 			set_color(&oldbg, &c.bg, (char *)&colorbuf);
 		break; default:
@@ -228,7 +228,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 		if (folded > 1)
 			strcpy(prefix, strrep(' ', strlen(format("[%zu]", lnk))-1));
 
-		return format("%s %c%c%zu%s", &prefix, linkstyle, MIRC_COLOR,
+		return format("%s %c%c%03zu%s", &prefix, linkstyle, MIRC_COLOR,
 				link_color(l->link_url), text);
 	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT:
 		return text;
@@ -312,8 +312,6 @@ _ui_redraw_inputline(void)
 		for (size_t i = CHKSUB(len+1, ui_width); i < len; ++i, ++x) {
 			tb_change_cell(x, ui_height-1, tbrl_buf[i], 0, 0);
 		}
-		//if (tbrl_len() > 3)
-			//die("%s\n", tbrl_hint);
 		for (size_t i = 0; i < strlen(tbrl_hint); ++i, ++x) {
 			tb_change_cell(x, ui_height-1, tbrl_hint[i], 8, 0);
 		}
