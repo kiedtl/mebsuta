@@ -37,6 +37,7 @@ tabs_rm(struct lnklist *tab)
 {
 	ENSURE(tab);
 	hist_free(&((struct Tab *)tab->data)->hist);
+	free(tab->data);
 	ENSURE(lnklist_rm(tab));
 }
 
@@ -45,9 +46,12 @@ tabs_free(void)
 {
 	for (struct lnklist *l = tabs->next; l; l = l->next) {
 		if (!l->data) continue;
+
 		hist_free(&((struct Tab *)l->data)->hist);
+		free(l->data);
+
 		/* Don't free t.doc, since that pointer was present
-		 * in t.hist which was freed */
+		 * in t.hist which was freed previously */
 	}
 	ENSURE(lnklist_free(tabs));
 }

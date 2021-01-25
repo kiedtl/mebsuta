@@ -262,13 +262,14 @@ main(void)
 			switch(ev.ch) {
 			case '0': case '1': case '2': case '3': case '4':
 			case '5': case '6': case '7': case '8': case '9':;
-				char *text = NULL;
-				CURLU *url = NULL;
+				CURLU *u = NULL;
+				size_t l = ev.ch - '0';
 
-				if (!gemdoc_find_link(CURTAB()->doc, ev.ch - '0', &text, &url))
+				if (!gemdoc_find_link(CURTAB()->doc, l, NULL, &u))
 					break;
 
-				follow_link(url, 0);
+				follow_link(u, 0);
+				curl_url_cleanup(u);
 			break; case 'g':
 				CURTAB()->ui_vscroll = 0;
 			break; case 'G':
