@@ -115,7 +115,6 @@ struct Gemdoc *
 gemdoc_new(CURLU *url)
 {
 	struct Gemdoc *g = ecalloc(1, sizeof(struct Gemdoc));
-	ENSURE(g);
 	g->url = url;
 	g->document = lnklist_new();
 	g->rawdoc = lnklist_new();
@@ -127,7 +126,6 @@ struct Gemdoc_CTX *
 gemdoc_parse_init(void)
 {
 	struct Gemdoc_CTX *c = ecalloc(1, sizeof(struct Gemdoc_CTX));
-	ENSURE(c);
 
 	c->preformat_on = false;
 	memset(c->preformat_alt, 0x0, sizeof(c->preformat_alt));
@@ -170,7 +168,6 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 
 	size_t type = _line_type(ctx, &line);
 	struct Gemtok *gdl = ecalloc(1, sizeof(struct Gemtok));
-	ENSURE(gdl);
 
 	if (type == GEM_DATA_LINK) {
 		gdl->type = type;
@@ -245,7 +242,10 @@ gemdoc_find_link(struct Gemdoc *g, size_t n, char **text, CURLU **url)
 	for (c = g->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 		if (l->type == GEM_DATA_LINK && --n == 0) {
-			*text = l->text, *url = l->link_url;
+			if (text)
+				*text = l->text;
+			if (url)
+				*url = curl_url_dup(l->link_url);
 			return true;
 		}
 	}

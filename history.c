@@ -43,9 +43,10 @@ hist_contains(struct History *h, CURLU *url)
 
 	for (size_t i = 0; i < hist_len(h); ++i) {
 		curl_url_get(h->visited[i]->url, CURLUPART_URL, &b_url, 0);
-		if (b_url)
+		if (b_url) {
 			if (!strcmp(a_url, b_url)) ++found;
-		free(b_url);
+			free(b_url);
+		}
 	}
 
 	free(a_url);

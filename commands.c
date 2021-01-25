@@ -45,9 +45,7 @@ command_follow(size_t argc, char **argv, char *rawargs)
 			return;
 		}
 	} else {
-		char *text = NULL;
-
-		if (!gemdoc_find_link(CURTAB()->doc, link, &text, &c_url)) {
+		if (!gemdoc_find_link(CURTAB()->doc, link, NULL, &c_url)) {
 			ui_message(UI_STOP, "No such link '%zu'", link);
 			return;
 		}
