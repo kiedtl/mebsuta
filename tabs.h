@@ -1,10 +1,8 @@
-#include "history.h"
 #include "list.h"
 #include "ui.h"
 
 struct Tab {
-	struct Gemdoc *doc;
-	struct History hist;
+	struct lnklist *visited;
 
 	size_t ui_vscroll, ui_hscroll;
 	char ui_messagebuf[255];
@@ -22,3 +20,4 @@ void tabs_rm(struct lnklist *tab);
 void tabs_free(void);
 
 #define CURTAB() ((struct Tab *)curtab->data)
+#define CURDOC() ((struct Gemdoc *)(CURTAB()->visited->data))

@@ -122,7 +122,8 @@ follow_link(CURLU *url, size_t redirects)
 
 	char *error;
 
-	switch (make_request(&CURTAB()->doc, url, &error)) {
+	struct Gemdoc *newdoc;
+	switch (make_request(&newdoc, url, &error)) {
 	break; case -1:;
 		char *scheme;
 		curl_url_get(url, CURLUPART_SCHEME, &scheme, 0);
@@ -136,13 +137,13 @@ follow_link(CURLU *url, size_t redirects)
 	}
 
 	/* now let's check for input and redirects */
-	switch (CURTAB()->doc->type) {
+	switch (newdoc->type) {
 	break; case GEM_TYPE_INPUT:
 		tbrl_setbuf(":input ");
 	break; case GEM_TYPE_REDIRECT:;
 		CURLUcode error;
-		CURLU *rurl = curl_url_dup(CURTAB()->doc->url);
-		error = curl_url_set(rurl, CURLUPART_URL, CURTAB()->doc->meta, 0);
+		CURLU *rurl = curl_url_dup(newdoc->url);
+		error = curl_url_set(rurl, CURLUPART_URL, newdoc->meta, 0);
 		if (error) {
 			ui_message(UI_WARN, "Invalid redirect URL.");
 			goto show;
@@ -160,7 +161,7 @@ follow_link(CURLU *url, size_t redirects)
 	}
 
 show:
-	hist_add(&CURTAB()->hist, CURTAB()->doc);
+	hist_add(&CURTAB()->visited, newdoc);
 	ui_redraw();
 }
 
@@ -168,15 +169,14 @@ static void
 newtab(CURLU *url)
 {
 	tabs_add(curtab), curtab = curtab->next;
-	make_request(&CURTAB()->doc, url, NULL);
-	hist_add(&CURTAB()->hist, CURTAB()->doc);
+	follow_link(url, 0);
 }
 
 static void
 editurl(void)
 {
 	char *urlbuf;
-	curl_url_get(CURTAB()->doc->url, CURLUPART_URL, &urlbuf, 0);
+	curl_url_get(CURDOC()->url, CURLUPART_URL, &urlbuf, 0);
 	tbrl_setbuf(format(":go %s", urlbuf));
 	free(urlbuf);
 	ui_redraw();
@@ -196,17 +196,16 @@ main(void)
 
 	CURLU *homepage_curl = curl_url();
 	curl_url_set(homepage_curl, CURLUPART_URL, homepage, 0);
-	struct Gemdoc *tmp;
 
+	ui_init();
 	tabs_init();
+
 	newtab(curl_url_dup(homepage_curl));
+	ui_redraw();
 
 	tbrl_init();
 	tbrl_complete_callback = &command_complete;
 	tbrl_enter_callback = &command_run;
-
-	ui_init();
-	ui_redraw();
 
 	/* incoming user events (key presses, window resizes,
 	 * mouse clicks, etc */
@@ -265,7 +264,7 @@ main(void)
 				CURLU *u = NULL;
 				size_t l = ev.ch - '0';
 
-				if (!gemdoc_find_link(CURTAB()->doc, l, NULL, &u))
+				if (!gemdoc_find_link(CURDOC(), l, NULL, &u))
 					break;
 
 				follow_link(u, 0);
@@ -285,23 +284,11 @@ main(void)
 			break; case 'l':
 				++CURTAB()->ui_hscroll;
 			break; case 'b':
-				if (hist_len(&CURTAB()->hist) == 0)
-					break;
-				tmp = CURTAB()->doc;
-				if (!(CURTAB()->doc = hist_back(&CURTAB()->hist))) {
-					CURTAB()->doc = tmp;
-					break;
-				}
+				hist_back(&CURTAB()->visited);
 			break; case 'f':
-				if (hist_len(&CURTAB()->hist) == 0)
-					break;
-				tmp = CURTAB()->doc;
-				if (!(CURTAB()->doc = hist_forw(&CURTAB()->hist))) {
-					CURTAB()->doc = tmp;
-					break;
-				}
+				hist_forw(&CURTAB()->visited);
 			break; case 'r':
-				follow_link(CURTAB()->doc->url, 0);
+				follow_link(CURDOC()->url, 0);
 			break; case ':':
 				tbrl_handle(&ev);
 			break; case ';':

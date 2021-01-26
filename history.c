@@ -8,41 +8,30 @@
 #include "gemini.h"
 #include "util.h"
 
-static struct Gemdoc *
-_hist_at(struct History *h, size_t pos)
-{
-	if (pos < MAXHISTSZ && h->visited[pos]) {
-		h->current = pos;
-		return h->visited[h->current];
-	} else {
-		return NULL;
-	}
-}
-
 void
-hist_init(struct History *h)
+hist_init(struct lnklist **h)
 {
-	for (size_t i = 0; i < MAXHISTSZ; ++i)
-		h->visited[i] = NULL;
+	*h = lnklist_new();
 }
 
 size_t
-hist_len(struct History *h)
+hist_len(struct lnklist *h)
 {
-	for (size_t i = 0; i < MAXHISTSZ; ++i)
-		if (!h->visited[i]) return i;
-	return MAXHISTSZ;
+	return lnklist_len(h);
 }
 
 size_t
-hist_contains(struct History *h, CURLU *url)
+hist_contains(struct lnklist *h, CURLU *url)
 {
 	char *a_url, *b_url;
 	curl_url_get(url, CURLUPART_URL, &a_url, 0);
 	size_t found = 0;
 
-	for (size_t i = 0; i < hist_len(h); ++i) {
-		curl_url_get(h->visited[i]->url, CURLUPART_URL, &b_url, 0);
+	for (struct lnklist *l = h->next; l; l = l->next) {
+		if (!l->data)
+			continue;
+		struct Gemdoc *g = (struct Gemdoc *)l->data;
+		curl_url_get(g->url, CURLUPART_URL, &b_url, 0);
 		if (b_url) {
 			if (!strcmp(a_url, b_url)) ++found;
 			free(b_url);
@@ -54,41 +43,45 @@ hist_contains(struct History *h, CURLU *url)
 }
 
 void
-hist_add(struct History *h, struct Gemdoc *g)
+hist_add(struct lnklist **h, struct Gemdoc *g)
 {
 	ENSURE(g);
 
-	if ((h->current+1) >= hist_len(h)) {
-		h->visited[h->current] = g;
-		++h->current;
+	if ((*h)->next) {
+		(*h)->next->prev = NULL;
+		lnklist_free((*h)->next);
+		(*h)->next = NULL;
+		(*h)->data = (void *)g;
 	} else {
-		for (size_t i = ++h->current; i < MAXHISTSZ; ++i) {
-			if (h->visited[i])
-				gemdoc_free(h->visited[i]);
-			h->visited[i] = NULL;
-		}
-		h->visited[h->current] = g;
+		lnklist_push((*h), (void *)g);
+		(*h) = (*h)->next;
 	}
-}
-
-struct Gemdoc *
-hist_back(struct History *h)
-{
-	return _hist_at(h, h->current - 1);
-}
-
-struct Gemdoc *
-hist_forw(struct History *h)
-{
-	return _hist_at(h, h->current + 1);
 }
 
 void
-hist_free(struct History *h)
+hist_back(struct lnklist **h)
 {
-	for (size_t i = 0; i < MAXHISTSZ; ++i) {
-		if (h->visited[i])
-			gemdoc_free(h->visited[i]);
-		h->visited[i] = NULL;
+	if ((*h)->prev && (*h)->prev->data) {
+		(*h) = (*h)->prev;
 	}
+}
+
+void
+hist_forw(struct lnklist **h)
+{
+	if ((*h)->next) {
+		(*h) = (*h)->next;
+	}
+}
+
+void
+hist_free(struct lnklist *h)
+{
+	struct lnklist *begin = lnklist_head(h);
+	for (struct lnklist *l = begin->next; l; l = l->next) {
+		if ((struct Gemdoc *)l->data)
+			gemdoc_free((struct Gemdoc *)l->data);
+		l->data = NULL;
+	}
+	ENSURE(lnklist_free(begin));
 }

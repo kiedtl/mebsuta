@@ -51,7 +51,7 @@ link_color(CURLU *u)
 	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
 	if (!scheme || strcmp(scheme, "gemini"))
 		color = MIRC_RED;
-	if (hist_contains(&CURTAB()->hist, u) > 0)
+	if (hist_contains(CURTAB()->visited, u) > 0)
 		color = MIRC_MAGENTA;
 	color = MIRC_BLUE;
 	free(scheme);
@@ -240,13 +240,13 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 static size_t
 _ui_redraw_rendered_doc(void)
 {
-	ENSURE(CURTAB()->doc != NULL);
+	ENSURE(CURDOC() != NULL);
 
 	size_t line = 1;
 
 	size_t links = 0, page_height = 0;
 	ssize_t scrollctr = CURTAB()->ui_vscroll;
-	for (struct lnklist *c = CURTAB()->doc->document->next; c; c = c->next) {
+	for (struct lnklist *c = CURDOC()->document->next; c; c = c->next) {
 		struct Gemtok *l = ((struct Gemtok *)c->data);
 		char *text = l->text;
 
@@ -278,7 +278,7 @@ _ui_redraw_raw_doc(void)
 {
 	size_t line = 1, page_height = 0;
 	ssize_t scrollctr = CURTAB()->ui_vscroll;
-	for (struct lnklist *c = CURTAB()->doc->rawdoc->next; c; c = c->next) {
+	for (struct lnklist *c = CURDOC()->rawdoc->next; c; c = c->next) {
 		if (--scrollctr >= 0) continue;
 		tb_writeline(line, (char *)c->data, CURTAB()->ui_hscroll);
 		++page_height;
@@ -293,7 +293,7 @@ _ui_redraw_other_doc(void)
 	struct Gemtok line = {
 		.type = GEM_DATA_HEADER1,
 		.text = strdup(format("%d %s",
-				CURTAB()->doc->status, CURTAB()->doc->meta))
+				CURDOC()->status, CURDOC()->meta))
 	};
 
 	tb_writeline(1,
@@ -344,16 +344,14 @@ _ui_redraw_tabline(void)
 	struct lnklist *fst = curtab;
 
 	for (l = 0; fst && fst->data && l < ui_width / 2; fst = fst->prev) {
-		struct Tab *t = (struct Tab *)fst->data;
-		l += strlen(format("%p", t->doc->title)) + 3;
+		l += strlen(format("%p", CURDOC()->title)) + 3;
 	}
 
 	if (!fst->data && fst->next->data)
 		fst = fst->next;
 
 	for (l = 0; fst && l < ui_width; fst = fst->next) {
-		struct Tab *t = (struct Tab *)fst->data;
-		char *p = format("%s", t->doc->title);
+		char *p = format("%s", CURDOC()->title);
 		if (fst == curtab)
 			strcat(linebuf, "\0030,1");
 		strcat(linebuf, "  "), ++l;
@@ -373,7 +371,7 @@ _ui_redraw_statusline(size_t page_height)
 {
 	size_t read = (CURTAB()->ui_vscroll * 100) / (page_height);
 	char *url;
-	curl_url_get(CURTAB()->doc->url, CURLUPART_URL, &url, 0);
+	curl_url_get(CURDOC()->url, CURLUPART_URL, &url, 0);
 
 	tb_writeline(ui_height-2, statusline(ui_width, read, url), 0);
 
@@ -383,14 +381,14 @@ _ui_redraw_statusline(size_t page_height)
 size_t
 ui_redraw(void)
 {
-	ENSURE(CURTAB()), ENSURE(CURTAB()->doc);
+	ENSURE(CURTAB()), ENSURE(CURDOC());
 	tb_clear();
 
 	_ui_redraw_tabline();
 
 	size_t page_height = 0;
 
-	switch (CURTAB()->doc->type) {
+	switch (CURDOC()->type) {
 	break; case GEM_TYPE_SUCCESS:
 		if (BITSET(CURTAB()->ui_doc_mode, UI_DOCRAW))
 			page_height = _ui_redraw_raw_doc();

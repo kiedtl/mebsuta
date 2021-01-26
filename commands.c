@@ -4,7 +4,7 @@ command_input(size_t argc, char **argv, char *rawargs)
 	UNUSED(argc);
 	UNUSED(argv);
 
-	CURLU *c_url = curl_url_dup(CURTAB()->doc->url);
+	CURLU *c_url = curl_url_dup(CURDOC()->url);
 	curl_url_set(c_url, CURLUPART_QUERY, rawargs, CURLU_URLENCODE);
 
 	follow_link(c_url, 0);
@@ -45,7 +45,7 @@ command_follow(size_t argc, char **argv, char *rawargs)
 			return;
 		}
 	} else {
-		if (!gemdoc_find_link(CURTAB()->doc, link, NULL, &c_url)) {
+		if (!gemdoc_find_link(CURDOC(), link, NULL, &c_url)) {
 			ui_message(UI_STOP, "No such link '%zu'", link);
 			return;
 		}
@@ -207,10 +207,12 @@ command_complete(char *buf, size_t curs, char *completebuf)
 		}
 	} else {
 		char *urlbuf;
-		struct History *hist = &CURTAB()->hist;
-		for (size_t i = hist_len(hist) - 1; i > 0; --i) {
-			curl_url_get(hist->visited[i]->url, CURLUPART_URL, &urlbuf, 0);
-			if (!urlbuf) continue;
+		struct lnklist *hist = lnklist_head(CURTAB()->visited)->next;
+		for (; hist; hist = hist->next) {
+			struct Gemdoc *g = (struct Gemdoc *)hist->data;
+			curl_url_get(g->url, CURLUPART_URL, &urlbuf, 0);
+			if (!urlbuf)
+				continue;
 
 			if (!strncmp(urlbuf, wordstart, strlen(wordstart))) {
 				size_t overlap = stroverlap(wordstart, urlbuf) + 1;

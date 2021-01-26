@@ -28,7 +28,7 @@ tabs_add(struct lnklist *after)
 {
 	struct Tab *t = ecalloc(1, sizeof(struct Tab));
 	ENSURE(t);
-	hist_init(&t->hist);
+	hist_init(&t->visited);
 	ENSURE(lnklist_insert(after, (void *)t));
 }
 
@@ -36,7 +36,7 @@ void
 tabs_rm(struct lnklist *tab)
 {
 	ENSURE(tab);
-	hist_free(&((struct Tab *)tab->data)->hist);
+	hist_free(((struct Tab *)tab->data)->visited);
 	free(tab->data);
 	ENSURE(lnklist_rm(tab));
 }
@@ -47,7 +47,7 @@ tabs_free(void)
 	for (struct lnklist *l = tabs->next; l; l = l->next) {
 		if (!l->data) continue;
 
-		hist_free(&((struct Tab *)l->data)->hist);
+		hist_free(((struct Tab *)l->data)->visited);
 		free(l->data);
 
 		/* Don't free t.doc, since that pointer was present
