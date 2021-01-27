@@ -2,8 +2,7 @@ CMD      = @
 
 VERSION  = 0.1.0
 NAME     = mebs
-SRC      = main.c util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c \
-	   mirc.c \
+SRC      = mirc.c util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c \
 	   third_party/strlcpy.c third_party/curl/url.c \
 	   third_party/curl/escape.c third_party/termbox/src/termbox.c \
 	   third_party/termbox/src/utf8.c
@@ -13,7 +12,8 @@ WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes 
 	   -Winit-self -Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
 	   -Wendif-labels -Wstrict-aliasing=2 -Woverflow -Wformat=2 -Wtrigraphs \
 	   -Wmissing-include-dirs -Wno-format-nonliteral -Wunused-parameter \
-	   -Wincompatible-pointer-types
+	   -Wincompatible-pointer-types \
+	   -Werror=implicit-function-declaration
 
 DEF      = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=1000 -D_DEFAULT_SOURCE
 INCL     = -I ~/local/include -Ithird_party/ -Ithird_party/termbox/src
@@ -25,7 +25,7 @@ LDFLAGS  = -fuse-ld=$(LD) -L/usr/include -lm -ltls
 UTF8PROC = ~/local/lib/libutf8proc.a
 
 .PHONY: all
-all: $(NAME)
+all: $(NAME) tests
 
 .PHONY: run
 run: $(NAME)
@@ -35,13 +35,19 @@ run: $(NAME)
 	@printf "    %-8s%s\n" "CC" $@
 	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
 
-main.o: commands.c config.h
+main.c: commands.c config.h
 ui.o:   config.h
 
-$(NAME): $(OBJ) $(UTF8PROC)
+tests: $(OBJ) $(UTF8PROC) tests.c
+	@printf "    %-8s%s\n" "CCLD" $@
+	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+	@printf "    %-8s%s\n" "RUN" $@
+	$(CMD)./$@
+
+$(NAME): $(OBJ) $(UTF8PROC) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
-	rm -rf $(NAME) $(OBJ)
+	rm -rf $(NAME) $(OBJ) tests
