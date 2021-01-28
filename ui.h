@@ -5,6 +5,14 @@
 #include "gemini.h"
 #include "termbox.h"
 
+#define UI_BOLD       '\x02'
+#define UI_UNDERLINE  '\x1f'
+#define UI_ITALIC     '\x1d'
+#define UI_INVERT     '\x16'
+#define UI_BLINK      '\x06'
+#define UI_RESET      '\x0f'
+#define UI_COLOR      '\x03'
+
 enum UiMessageType {
 	UI_WARN = 1,
 	UI_INFO = 2,

@@ -2,7 +2,7 @@ CMD      = @
 
 VERSION  = 0.1.0
 NAME     = mebs
-SRC      = mirc.c util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c \
+SRC      = util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c \
 	   third_party/strlcpy.c third_party/curl/url.c \
 	   third_party/curl/escape.c third_party/termbox/src/termbox.c \
 	   third_party/termbox/src/utf8.c

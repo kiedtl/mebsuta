@@ -11,7 +11,6 @@
 #include "gemini.h"
 #include "history.h"
 #include "list.h"
-#include "mirc.h"
 #include "tabs.h"
 #include "tbrl.h"
 #include "termbox.h"
@@ -50,10 +49,11 @@ link_color(CURLU *u)
 	char *scheme, color;
 	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
 	if (!scheme || strcmp(scheme, "gemini"))
-		color = MIRC_RED;
+		color = 1; /* red */
 	if (hist_contains(CURTAB()->visited, u) > 0)
-		color = MIRC_MAGENTA;
-	color = MIRC_BLUE;
+		color = 5; /* magenta */
+	else
+		color = 4; /* blue */
 	free(scheme);
 	return color;
 }
@@ -65,8 +65,6 @@ set_color(uint16_t *old, uint16_t *new, char *color)
 	uint32_t col = strtol(color, NULL, 10);
 
 	*old = *new, *new = col;
-	if (col < sizeof(mirc_colors))
-		*new = mirc_colors[col];
 
 	for (size_t i = 0; i < sizeof(attribs); ++i)
 		if ((*old & attribs[i]) == attribs[i])
@@ -102,17 +100,17 @@ tb_writeline(size_t line, char *string, size_t skip)
 
 	while (*string && col < (int)ui_width) {
 		switch (*string) {
-		break; case MIRC_BOLD:      ++string; c.fg ^= TB_BOLD;
-		break; case MIRC_UNDERLINE: ++string; c.fg ^= TB_UNDERLINE;
-		break; case MIRC_INVERT:    ++string; c.fg ^= TB_REVERSE;
-		break; case MIRC_RESET:     ++string; c.fg = 15, c.bg = 0;
-		break; case MIRC_ITALIC:    ++string; break;
-		break; case MIRC_BLINK:     ++string; break;
-		break; case MIRC_COLOR:;
+		break; case UI_BOLD:      ++string; c.fg ^= TB_BOLD;
+		break; case UI_UNDERLINE: ++string; c.fg ^= TB_UNDERLINE;
+		break; case UI_INVERT:    ++string; c.fg ^= TB_REVERSE;
+		break; case UI_RESET:     ++string; c.fg = 15, c.bg = 0;
+		break; case UI_ITALIC:    ++string; break;
+		break; case UI_BLINK:     ++string; break;
+		break; case UI_COLOR:;
 			char *end;
 			++string;
 
-			/* if no digits after MIRC_COLOR, reset */
+			/* if no digits after UI_COLOR, reset */
 			if (!isdigit(*string)) {
 				c.fg = 15, c.bg = 0;
 				break;
@@ -208,9 +206,9 @@ ui_present(void)
 static char *
 format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 {
-	char linkstyle = MIRC_RESET;
+	char linkstyle = UI_RESET;
 	if (!l->text || BITSET(CURTAB()->ui_doc_mode, UI_DOCRAWLINK))
-		linkstyle = MIRC_UNDERLINE;
+		linkstyle = UI_UNDERLINE;
 
 	char *styles[9][2] = {
 		[GEM_DATA_HEADER1] = { "# \x02",   "  \x02"   },
@@ -223,12 +221,12 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 	switch (l->type) {
 	break; case GEM_DATA_LINK:;
 		char prefix[32] = { '\0' };
-		strcpy(prefix, format("%c[%zu]%c", MIRC_BOLD, lnk, MIRC_RESET));
+		strcpy(prefix, format("%c[%zu]%c", UI_BOLD, lnk, UI_RESET));
 
 		if (folded > 1)
 			strcpy(prefix, strrep(' ', strlen(format("[%zu]", lnk))-1));
 
-		return format("%s %c%c%03zu%s", &prefix, linkstyle, MIRC_COLOR,
+		return format("%s %c%c%03zu%s", &prefix, linkstyle, UI_COLOR,
 				link_color(l->link_url), text);
 	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT:
 		return text;
