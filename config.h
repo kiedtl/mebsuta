@@ -17,8 +17,7 @@ static char * __attribute__((unused))
 statusline(size_t width, size_t read, struct Gemdoc *g)
 {
 	char lstatus[100] = { '\0' }, rstatus[100] = { '\0' };
-	strcpy(lstatus, format("%3d%%", read));
-	strcat(lstatus, format(" %s/%s", g->mime, g->submime));
+	strcpy(lstatus, format("%3d%% (%s)", read, g->mimetype));
 
 	char *url;
 	curl_url_get(g->url, CURLUPART_URL, &url, 0);

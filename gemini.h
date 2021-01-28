@@ -63,8 +63,8 @@ struct Gemdoc {
 	char meta[(1024  -  3) + 1];
 
 	size_t encoding;
-	char mime[16], submime[16];
 	char title[MAXTITLELEN + 1];
+	char mimetype[32];
 
 	struct lnklist *document;
 	struct lnklist *rawdoc;

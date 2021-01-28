@@ -50,14 +50,8 @@ _parse_metatext(struct Gemdoc *g)
 	if (g->type != GEM_TYPE_SUCCESS || strlen(meta) == 0)
 		return true;
 
-	char *end = eat(meta, isalpha, SIZEOF(g->mime));
-	strlcpy(g->mime, meta, end - meta + 1);
-
-	if (*end) {
-		meta = end + 1;
-		end = eat(meta, isalpha, SIZEOF(g->submime));
-		strlcpy(g->submime, meta, end - meta + 1);
-	}
+	char *end = eat(meta, isgraph, SIZEOF(g->mimetype));
+	strlcpy(g->mimetype, meta, end - meta + 1);
 
 	return true;
 }
@@ -150,10 +144,10 @@ gemdoc_new(CURLU *url)
 	bzero(g->meta, sizeof(g->meta));
 	g->encoding = GEM_CHARSET_UTF8;
 
-	strcpy(g->mime, "text");
-	strcpy(g->submime, "gemini");
-
 	bzero(g->title, sizeof(g->title));
+
+	bzero(g->mimetype, sizeof(g->mimetype));
+	strcpy(g->mimetype, "text/gemini");
 
 	return g;
 }
