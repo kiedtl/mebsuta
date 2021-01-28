@@ -25,7 +25,7 @@ LDFLAGS  = -fuse-ld=$(LD) -L/usr/include -lm -ltls
 UTF8PROC = ~/local/lib/libutf8proc.a
 
 .PHONY: all
-all: $(NAME) tests
+all: $(NAME)
 
 .PHONY: run
 run: $(NAME)
@@ -37,12 +37,6 @@ run: $(NAME)
 
 main.c: commands.c config.h
 ui.o:   config.h
-
-tests: $(OBJ) $(UTF8PROC) tests.c
-	@printf "    %-8s%s\n" "CCLD" $@
-	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
-	@printf "    %-8s%s\n" "RUN" $@
-	$(CMD)./$@
 
 $(NAME): $(OBJ) $(UTF8PROC) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
