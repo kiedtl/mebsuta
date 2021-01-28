@@ -31,20 +31,21 @@ enum UiMessageType ui_message_type;
  * (Calling tb_shutdown twice, or before tb_init, results in
  * a call to abort().)
  */
-size_t tb_status = 0;
-const size_t TB_ACTIVE   = 0x01000000;
-const size_t TB_MODIFIED = 0x02000000;
+static const size_t TB_ACTIVE   = (1<<1);
+static const size_t TB_MODIFIED = (1<<2);
+static size_t tb_status = 0;
+
 static size_t ui_height, ui_width;
 
 /*
  * tpresent: last time tb_present() was called.
  * tcurrent: buffer for gettimeofday(2).
  */
-struct timeval tpresent = { 0, 0 };
-struct timeval tcurrent = { 0, 0 };
+static struct timeval tpresent = { 0, 0 };
+static struct timeval tcurrent = { 0, 0 };
 
-static size_t
-link_color(CURLU *u)
+static inline size_t
+_link_color(CURLU *u)
 {
 	char *scheme, color;
 	curl_url_get(u, CURLUPART_SCHEME, &scheme, 0);
@@ -60,7 +61,7 @@ link_color(CURLU *u)
 
 const size_t attribs[] = { TB_BOLD, TB_UNDERLINE, TB_REVERSE };
 static inline void
-set_color(uint16_t *old, uint16_t *new, char *color)
+_set_color(uint16_t *old, uint16_t *new, char *color)
 {
 	uint32_t col = strtol(color, NULL, 10);
 
@@ -119,7 +120,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
 			end = eat(string, isdigit, 3);
 			strncpy(colorbuf, string, end - string), string = end;
-			set_color(&oldfg, &c.fg, (char *)&colorbuf);
+			_set_color(&oldfg, &c.fg, (char *)&colorbuf);
 
 			/* bg color may or may not be present */
 			if (*string != ',' || !isdigit(string[1]))
@@ -128,7 +129,7 @@ tb_writeline(size_t line, char *string, size_t skip)
 			colorbuf[0] = colorbuf[1] = colorbuf[2] = '\0';
 			end = eat(++string, isdigit, 3);
 			strncpy(colorbuf, string, end - string), string = end;
-			set_color(&oldbg, &c.bg, (char *)&colorbuf);
+			_set_color(&oldbg, &c.bg, (char *)&colorbuf);
 		break; default:
 			charbuf = 0;
 			runelen = utf8proc_iterate((const unsigned char *) string,
@@ -227,7 +228,7 @@ format_elem(struct Gemtok *l, char *text, size_t lnk, size_t folded)
 			strcpy(prefix, strrep(' ', strlen(format("[%zu]", lnk))-1));
 
 		return format("%s %c%c%03zu%s", &prefix, linkstyle, UI_COLOR,
-				link_color(l->link_url), text);
+				_link_color(l->link_url), text);
 	break; case GEM_DATA_TEXT: case GEM_DATA_PREFORMAT:
 		return text;
 	break; default:
@@ -320,7 +321,7 @@ _ui_redraw_inputline(void)
 		size_t padwidth = CHKSUB(ui_width, strlen(ui_messagebuf));
 		padwidth = CHKSUB(padwidth, strlen(DISMISS));
 
-		tb_writeline(ui_height-1, format("%s%s\00314%s",
+		tb_writeline(ui_height-1, format("%s%s\003008%s",
 			ui_messagebuf, strrep(' ', CHKSUB(padwidth, 1)), DISMISS), 0);
 	}
 
@@ -351,7 +352,7 @@ _ui_redraw_tabline(void)
 	for (l = 0; fst && l < ui_width; fst = fst->next) {
 		char *p = format("%s", CURDOC()->title);
 		if (fst == curtab)
-			strcat(linebuf, "\0030,1");
+			strcat(linebuf, "\0030,0");
 		strcat(linebuf, "  "), ++l;
 		strcat(linebuf, p), l += strlen(p);
 		if (l < ui_width - 1)

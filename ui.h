@@ -25,9 +25,6 @@ enum UiDocumentMode {
 	UI_DOCRAWLINK = (1<<2)
 };
 
-extern size_t tb_status;
-extern const size_t TB_ACTIVE, TB_MODIFIED;
-
 void ui_init(void);
 void ui_present(void);
 void ui_set_gemdoc(struct Gemdoc *g);
