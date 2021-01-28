@@ -89,8 +89,8 @@ strrep(char c, size_t n)
 {
 	static char buf[8192];
 	ENSURE((n + 1) < (sizeof(buf) - 1));
+	memset(buf, 0x0, sizeof(buf));
 	memset(buf, c, n);
-	memset(buf, 0x0, n);
 	return (char *) &buf;
 }
 
