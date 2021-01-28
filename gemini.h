@@ -53,8 +53,7 @@ struct Gemtok {
 	char *text;
 	char *raw_link_url;
 	CURLU *link_url;
-}
-;
+};
 
 /* TODO: keep track of encoding, lang */
 struct Gemdoc {

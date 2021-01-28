@@ -28,9 +28,17 @@ _parse_responseline(struct Gemdoc *g, char *line)
 		return false;
 
 	g->type = line[0] - '0';
-	g->status = (g->type*10) + (line[1]-'0');
 
-	strlcpy(g->meta, &line[3], sizeof(g->meta));
+	/* Second character in response code is optional */
+	g->status = g->type * 10;
+	if (isdigit(line[1]))
+		g->status += *(++line) - '0';
+
+	/* There must be a space between response code and meta text */
+	if (!isblank(line[1]))
+		return false;
+
+	strlcpy(g->meta, &line[2], sizeof(g->meta));
 
 	return true;
 }
@@ -142,8 +150,8 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 	char *begin = line;
 
 	/* remove trailing \r, if any */
-	char *cr;
-	if ((cr = strchr(line, '\r')))
+	char *cr = NULL;
+	if ((cr = memchr((void *)line, '\r', strlen(line))))
 		*cr = '\0';
 
 	++ctx->line;
@@ -193,8 +201,13 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 
 		/* Start with the document's URL before adding the link's URL.
 		 * This allows relative URLs to be handled properly by cURL. */
-		gdl->link_url = curl_url_dup(g->url);
-		c_rc = curl_url_set(gdl->link_url, CURLUPART_URL, gdl->raw_link_url, 0);
+		if (g->url)
+			gdl->link_url = curl_url_dup(g->url);
+		else
+			gdl->link_url = curl_url();
+
+		c_rc = curl_url_set(gdl->link_url, CURLUPART_URL,
+				gdl->raw_link_url, 0);
 
 		switch (c_rc) {
 		case CURLUE_OK:
@@ -214,7 +227,7 @@ gemdoc_parse(struct Gemdoc_CTX *ctx, struct Gemdoc *g, char *line)
 
 		lnklist_push(g->document, (void *) gdl);
 	} else {
-		if (type != GEM_DATA_PREFORMAT)
+		if (type != GEM_DATA_PREFORMAT && type != GEM_DATA_TEXT)
 			while (*line && isblank(*line)) ++line;
 		gdl->type = type;
 		gdl->text = strdup(line);
