@@ -256,6 +256,9 @@ main(void)
 				ui_handle(&ev);
 			}
 
+			if (quit)
+				break;
+
 			ui_redraw();
 		} else if (ev.type == TB_EVENT_KEY && ev.ch) {
 			switch(ev.ch) {

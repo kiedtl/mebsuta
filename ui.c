@@ -341,16 +341,19 @@ _ui_redraw_tabline(void)
 
 	size_t l;
 	struct lnklist *fst = curtab;
+	void *tabhist;
 
 	for (l = 0; fst && fst->data && l < ui_width / 2; fst = fst->prev) {
-		l += strlen(format("%p", CURDOC()->title)) + 3;
+		tabhist = ((struct Tab *)fst->data)->visited->data;
+		l += strlen(((struct Gemdoc *)tabhist)->title) + 3;
 	}
 
 	if (!fst->data && fst->next->data)
 		fst = fst->next;
 
 	for (l = 0; fst && l < ui_width; fst = fst->next) {
-		char *p = format("%s", CURDOC()->title);
+		tabhist = ((struct Tab *)fst->data)->visited->data;
+		char *p = ((struct Gemdoc *)tabhist)->title;
 		if (fst == curtab)
 			strcat(linebuf, "\0030,0");
 		strcat(linebuf, "  "), ++l;
