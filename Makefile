@@ -2,11 +2,12 @@ CMD      = @
 
 VERSION  = 0.1.0
 NAME     = mebs
-SRC      = util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c \
-	   third_party/strlcpy.c third_party/curl/url.c \
+SRC      = util.c conn.c list.c gemini.c history.c ui.c tabs.c tbrl.c
+SRC3     = third_party/strlcpy.c third_party/curl/url.c \
 	   third_party/curl/escape.c third_party/termbox/src/termbox.c \
 	   third_party/termbox/src/utf8.c
 OBJ      = $(SRC:.c=.o)
+OBJ3     = $(SRC3:.c=.o)
 
 WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes \
 	   -Winit-self -Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
@@ -35,13 +36,18 @@ run: $(NAME)
 	@printf "    %-8s%s\n" "CC" $@
 	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
 
+$(OBJ): gemini.h
 main.c: commands.c config.h
 ui.o:   config.h
 
-$(NAME): $(OBJ) $(UTF8PROC) main.c
+$(NAME): $(OBJ) $(OBJ3) $(UTF8PROC) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
 	rm -rf $(NAME) $(OBJ) tests
+
+.PHONY: deepclean
+deepclean: clean
+	rm -rf $(OBJ3)
