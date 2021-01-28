@@ -13,7 +13,7 @@ WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes 
 	   -Wendif-labels -Wstrict-aliasing=2 -Woverflow -Wformat=2 -Wtrigraphs \
 	   -Wmissing-include-dirs -Wno-format-nonliteral -Wunused-parameter \
 	   -Wincompatible-pointer-types \
-	   -Werror=implicit-function-declaration
+	   -Werror=implicit-function-declaration -Werror=return-type
 
 DEF      = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=1000 -D_DEFAULT_SOURCE
 INCL     = -I ~/local/include -Ithird_party/ -Ithird_party/termbox/src

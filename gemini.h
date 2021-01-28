@@ -55,12 +55,15 @@ struct Gemtok {
 	CURLU *link_url;
 };
 
-/* TODO: keep track of encoding, lang */
+/* TODO: keep track of lang */
 struct Gemdoc {
 	CURLU *url;
 
 	size_t status, type;
 	char meta[(1024  -  3) + 1];
+
+	size_t encoding;
+	char mime[16], submime[16];
 	char title[MAXTITLELEN + 1];
 
 	struct lnklist *document;

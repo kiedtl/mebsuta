@@ -369,12 +369,7 @@ static void
 _ui_redraw_statusline(size_t page_height)
 {
 	size_t read = (CURTAB()->ui_vscroll * 100) / (page_height);
-	char *url;
-	curl_url_get(CURDOC()->url, CURLUPART_URL, &url, 0);
-
-	tb_writeline(ui_height-2, statusline(ui_width, read, url), 0);
-
-	free(url);
+	tb_writeline(ui_height-2, statusline(ui_width, read, CURDOC()), 0);
 }
 
 size_t

@@ -43,6 +43,25 @@ _parse_responseline(struct Gemdoc *g, char *line)
 	return true;
 }
 
+static _Bool
+_parse_metatext(struct Gemdoc *g)
+{
+	char *meta = g->meta;
+	if (g->type != GEM_TYPE_SUCCESS || strlen(meta) == 0)
+		return true;
+
+	char *end = eat(meta, isalpha, SIZEOF(g->mime));
+	strlcpy(g->mime, meta, end - meta + 1);
+
+	if (*end) {
+		meta = end + 1;
+		end = eat(meta, isalpha, SIZEOF(g->submime));
+		strlcpy(g->submime, meta, end - meta + 1);
+	}
+
+	return true;
+}
+
 static size_t
 _line_type(struct Gemdoc_CTX *ctx, char **line)
 {
@@ -115,8 +134,9 @@ _set_title(struct Gemdoc *g)
 
 	memset(g->title, 0x0, sz);
 
-	if (_extract_title(g, g->title, sz) >= sz)
-		g->title[sz-2] = g->title[sz-3] = g->title[sz-4] = '.';
+	if (g->type == GEM_TYPE_SUCCESS)
+		if (_extract_title(g, g->title, sz) >= sz)
+			g->title[sz-2] = g->title[sz-3] = g->title[sz-4] = '.';
 }
 
 struct Gemdoc *
@@ -126,6 +146,14 @@ gemdoc_new(CURLU *url)
 	g->url = url;
 	g->document = lnklist_new();
 	g->rawdoc = lnklist_new();
+
+	bzero(g->meta, sizeof(g->meta));
+	g->encoding = GEM_CHARSET_UTF8;
+
+	strcpy(g->mime, "text");
+	strcpy(g->submime, "gemini");
+
+	bzero(g->title, sizeof(g->title));
 
 	return g;
 }
@@ -241,9 +269,10 @@ _Bool
 gemdoc_parse_finish(struct Gemdoc_CTX *ctx, struct Gemdoc *g)
 {
 	ENSURE(ctx), ENSURE(g);
-
 	free(ctx);
+
 	_set_title(g);
+	_parse_metatext(g);
 
 	return true;
 }
